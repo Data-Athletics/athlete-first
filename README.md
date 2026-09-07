@@ -11,3 +11,5 @@ Activate virtual environment: source .venv/Scripts/activate (depends based on OS
 Ensure docker is downloaded and running
 
 To run development setup: make dev
+
+View API docs at http://localhost:8000/api/v1/docs

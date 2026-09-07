@@ -1,3 +1,3 @@
-from .HealthDTO import HealthDTO
+from .health_dto import HealthDTO
 
 __all__ = ["HealthDTO"]

@@ -3,7 +3,10 @@ from fastapi import APIRouter, FastAPI
 
 from app.observability import router as observability_router
 
-app = FastAPI()
+app = FastAPI(
+    docs_url="/api/v1/docs",
+    openapi_url="/api/v1/openapi.json",
+)
 router = APIRouter(prefix="/api/v1")
 
 app.include_router(router)
