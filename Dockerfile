@@ -1,10 +1,14 @@
 FROM python:3.14.2 AS BASE
 
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 WORKDIR /app
 
-COPY ./requirements.txt .
+COPY pyproject.toml uv.lock ./
 
-RUN pip install -r requirements.txt
+RUN uv sync --locked --no-install-project
+
+ENV PATH="/app/.venv/bin:$PATH"
 
 
 FROM BASE AS DEV
@@ -23,4 +27,4 @@ FROM BASE AS PROD
 
 COPY . .
 
-CMD [ "python", "main.py" ]
+CMD [ "python", "app/main.py" ]

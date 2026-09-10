@@ -1,13 +1,14 @@
 import uvicorn
 from fastapi import APIRouter, FastAPI
 
+from app.constants import APP_PREFIX
 from app.observability import router as observability_router
 
 app = FastAPI(
-    docs_url="/api/v1/docs",
-    openapi_url="/api/v1/openapi.json",
+    docs_url=APP_PREFIX + "/docs",
+    openapi_url=APP_PREFIX + "/openapi.json",
 )
-router = APIRouter(prefix="/api/v1")
+router = APIRouter(prefix=APP_PREFIX)
 
 app.include_router(router)
 
