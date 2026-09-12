@@ -28,6 +28,7 @@ dependencies = [
     "markupsafe==3.0.3",
     "mdurl==0.1.2",
     "packaging==26.3",
+    "pandas>=3.0.5",
     "pluggy==1.6.0",
     "pydantic==2.13.5",
     "pydantic-core==2.46.5",

@@ -1,0 +1,16 @@
+device_id,unix_s,iso_utc,timestamp_status,stream,source_table,hr_bpm,rr_ms,rr_instant_bpm,rr_seq,rr_ord,rr_source_channel,rr_stored_ts_suspect,gravity_x,gravity_y,gravity_z,gravity_vector_magnitude_g,gravity_dynamic_accel_g,spo2_red_raw,spo2_ir_raw,skin_temp_raw,skin_temp_aux1_raw,skin_temp_aux2_raw,resp_raw,battery_soc,battery_mv,battery_charging,event_kind,event_payload,synced
+my-whoop,31538627,1971-01-01T00:10:27.000Z,implausible_before_2023-11,battery,battery,,,,,,,,,,,,,,,,,,,10,3737,1,,,0
+my-whoop,31538627,1971-01-01T00:10:27.000Z,implausible_before_2023-11,event,event,,,,,,,,,,,,,,,,,,,,,,BATTERY,"{""BATTERY"": {""soc"": 10, ""mv"": 3737}}",0
+my-whoop,31538657,1971-01-01T00:10:57.000Z,implausible_before_2023-11,event,event,,,,,,,,,,,,,,,,,,,,,,ERROR,"{""ERROR"": 1}",0
+my-whoop,1745765207,2025-04-27T14:46:47.000Z,plausible_by_noop_bounds,heart_rate,hrSample,52,,,,,,,,,,,,,,,,,,,,,,,0
+my-whoop,1745765207,2025-04-27T14:46:47.000Z,plausible_by_noop_bounds,rr_interval,rrInterval,,1291,46.48,0,0,0,0,,,,,,,,,,,,,,,,,0
+my-whoop,1745765207,2025-04-27T14:46:47.000Z,plausible_by_noop_bounds,gravity,gravitySample,,,,,,,,0.072429202,0.670554221,0.737812519,0.999628,0.012,,,,,,,,,,,,0
+my-whoop,1745765207,2025-04-27T14:46:47.000Z,plausible_by_noop_bounds,optical_raw,spo2Sample,,,,,,,,,,,,,661,723,,,,,,,,,,0
+my-whoop,1745765207,2025-04-27T14:46:47.000Z,plausible_by_noop_bounds,skin_temperature_raw,skinTempSample,,,,,,,,,,,,,,,1412,1410,1414,,,,,,,0
+my-whoop,1745765207,2025-04-27T14:46:47.000Z,plausible_by_noop_bounds,respiration_raw,respSample,,,,,,,,,,,,,,,,,,3073,,,,,,0
+my-whoop,1745765207.048,2025-04-27T14:46:47.048Z,plausible_by_noop_bounds,heart_rate,hrSample,52,,,,,,,,,,,,,,,,,,,,,,,0
+my-whoop,1745765207.048,2025-04-27T14:46:47.048Z,plausible_by_noop_bounds,rr_interval,rrInterval,,1242,48.31,0,0,0,0,,,,,,,,,,,,,,,,,0
+my-whoop,1745765207.048,2025-04-27T14:46:47.048Z,plausible_by_noop_bounds,gravity,gravitySample,,,,,,,,0.069887698,0.6733374,0.737695336,1.00123,0.015,,,,,,,,,,,,0
+my-whoop,1745765207.048,2025-04-27T14:46:47.048Z,plausible_by_noop_bounds,optical_raw,spo2Sample,,,,,,,,,,,,,661,723,,,,,,,,,,0
+my-whoop,1745765207.048,2025-04-27T14:46:47.048Z,plausible_by_noop_bounds,skin_temperature_raw,skinTempSample,,,,,,,,,,,,,,,1419,1417,1421,,,,,,,0
+my-whoop,1745765207.048,2025-04-27T14:46:47.048Z,plausible_by_noop_bounds,respiration_raw,respSample,,,,,,,,,,,,,,,,,,3073,,,,,,0
