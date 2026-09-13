@@ -20,6 +20,7 @@ def decode_noop_csv(file: BinaryIO) -> NoopData:
         records = (
             df.loc[df[NOOP_SOURCE_COLUMN] == source_type, [*cols, NOOP_TIME_COLUMN]]
             .dropna(how="all")
+            .rename(columns={NOOP_TIME_COLUMN: "timestamp"})
             .to_dict(orient="records")
         )
         records = cast(list[dict[str, Any]], records)
