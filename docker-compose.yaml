@@ -7,24 +7,28 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - .:/app
-      - /app/.venv
+      - ./app:/app/app
+      - ./scripts:/scripts
+      - ./tests:/app/tests
+      - ./pyproject.toml:/app/pyproject.toml
     env_file:
       - .env
     environment:
-      - PYTHONPATH=/app
-      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@pg-db:5432/${DB_NAME}
+      - PORT=9000
+      - DB_host=postgres
+      - DB_user=${DB_user:-devuser}
+      - DB_password=${DB_password:-devpass}
+      - DB_name=${DB_name:-devdatabase}
     depends_on:
-      - pg-db
+      - postgres
 
-  pg-db:
-    container_name: pg-db
-    image: postgres:latest
+  postgres:
+    image: postgres:17
     attach: false
     environment:
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_user:-devuser}
+      - POSTGRES_PASSWORD=${DB_password:-devpass}
+      - POSTGRES_DB=${DB_name:-devdatabase}
     ports:
       - "5432:5432"
     volumes:

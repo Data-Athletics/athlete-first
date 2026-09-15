@@ -1,23 +1,48 @@
-import uvicorn
-from fastapi import APIRouter, FastAPI
+from contextlib import asynccontextmanager
 
-from app.constants import APP_PREFIX
+from fastapi import APIRouter, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.core.config import app_settings
+from app.core.database import ModelBase, get_engine
 from app.observability import router as observability_router
 
-app = FastAPI(
-    docs_url=APP_PREFIX + "/docs",
-    openapi_url=APP_PREFIX + "/openapi.json",
-)
-router = APIRouter(prefix=APP_PREFIX)
 
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Runs on server startup and yields until server shutdown."""
+    engine = get_engine()
+
+    print("docs url:", _app.docs_url)
+
+    async with engine.begin() as conn:
+        await conn.run_sync(ModelBase.metadata.create_all)
+
+    yield
+
+
+app = FastAPI(
+    lifespan=lifespan,
+    docs_url=app_settings.api_prefix + "/docs",
+    openapi_url=app_settings.api_prefix + "/openapi.json",
+)
+
+
+router = APIRouter(prefix=app_settings.api_prefix)
 app.include_router(router)
 
 router.include_router(observability_router, prefix="/observability")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_credentials=True,
+    allow_origins=app_settings.allow_origins,
+    allow_methods=app_settings.allow_methods,
+    allow_headers=app_settings.allow_headers,
+    expose_headers=app_settings.expose_headers,
+)
 
-def start():
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
 
-
-if __name__ == "__main__":
-    start()
+@app.get("/")
+async def index():
+    return {"message": "Systems Operational"}
