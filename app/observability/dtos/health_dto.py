@@ -1,7 +1,7 @@
 from typing import Literal
 
-from pydantic import BaseModel
+from app.core.dtos import BaseDTO
 
 
-class HealthDTO(BaseModel):
+class HealthDTO(BaseDTO):
     status: Literal["healthy", "unhealthy"]
