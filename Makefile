@@ -12,7 +12,7 @@ run: env
 dev: env build run
 
 test:
-	docker compose run --rm athlete-first sh -c "pytest"
+	docker compose run --rm athlete-first sh -c "/scripts/wait-for-db.sh && pytest"
 
 prod: env
 	docker-compose up --build

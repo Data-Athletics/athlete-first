@@ -45,7 +45,7 @@ class PostgresClient:
             instance = super().__new__(cls)
 
             extra_engine_kwargs = {}
-            if app_settings.env == "dev":
+            if app_settings.env == "dev" or app_settings.env == "test":
                 # Improves concurrency errors in test mode
                 extra_engine_kwargs["poolclass"] = NullPool
 

@@ -15,6 +15,7 @@ services:
       - .env
     environment:
       - PORT=9000
+      - AF_env=dev
       - DB_host=postgres
       - DB_user=${DB_user:-devuser}
       - DB_password=${DB_password:-devpass}

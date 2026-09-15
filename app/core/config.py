@@ -10,7 +10,7 @@ class AppSettings(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="AF_")
 
-    env: Literal["dev", "prod"] = "prod"
+    env: Literal["dev", "test", "prod"] = "prod"
     api_prefix: str = "/api/v1"
     allow_origins: list[str] = ["*"]
     allow_methods: list[str] = ["*"]
