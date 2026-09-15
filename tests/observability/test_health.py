@@ -5,7 +5,7 @@ from app.observability.types import HealthStatus
 
 
 async def test_health(client: AsyncClient):
-    """Should return 200 ok."""
+    """Should return 200 ok"""
 
     response = await client.get("/observability/health")
     health = HealthDTO.model_validate(response.json())

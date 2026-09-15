@@ -1,9 +1,10 @@
 services:
   athlete-first:
     container_name: athlete-first
+    restart: unless-stopped
     build:
       context: .
-      target: DEV
+      target: dev
     ports:
       - "8000:8000"
     volumes:
@@ -24,16 +25,18 @@ services:
       - postgres
 
   postgres:
-    image: postgres:17
+    image: postgres:17-alpine
     attach: false
+    restart: unless-stopped
     environment:
+      - POSTGRES_MULTIPLE_DATABASES=${DB_name:-devdatabase},test
       - POSTGRES_USER=${DB_user:-devuser}
       - POSTGRES_PASSWORD=${DB_password:-devpass}
-      - POSTGRES_DB=${DB_name:-devdatabase}
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/create-multiple-databases.sh:/docker-entrypoint-initdb.d/create-multiple-databases.sh
 
 volumes:
   postgres_data:

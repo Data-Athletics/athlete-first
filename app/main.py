@@ -6,14 +6,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import app_settings
 from app.core.database import ModelBase, get_engine
 from app.observability import router as observability_router
+from app.user import router as user_router
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """Runs on server startup and yields until server shutdown."""
-    engine = get_engine()
 
-    print("docs url:", _app.docs_url)
+    engine = get_engine()
 
     async with engine.begin() as conn:
         await conn.run_sync(ModelBase.metadata.create_all)
@@ -32,6 +32,7 @@ router = APIRouter(prefix=app_settings.api_prefix)
 app.include_router(router)
 
 router.include_router(observability_router, prefix="/observability")
+router.include_router(user_router, prefix="/user")
 
 app.add_middleware(
     CORSMiddleware,

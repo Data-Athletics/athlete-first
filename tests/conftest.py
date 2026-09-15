@@ -1,10 +1,10 @@
 import pytest
-from core.config import app_settings, db_settings
-from core.database import ModelBase, get_db_session, get_engine
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import inspect, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import app_settings, db_settings
+from app.core.database import ModelBase, get_db_session, get_engine
 from app.main import app
 
 
@@ -22,9 +22,10 @@ async def engine_fixture(settings):
 
     engine = get_engine()
 
-    # Ensure database is cleared first
+    # Ensure database is clean first
     async with engine.begin() as conn:
         await conn.run_sync(ModelBase.metadata.drop_all)
+        await conn.run_sync(ModelBase.metadata.create_all)
 
     yield engine
 

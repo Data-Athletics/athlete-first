@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 
 from app.core.config import app_settings, db_settings
 
@@ -121,3 +121,9 @@ class ModelBase(DeclarativeBase):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=func.now(), onupdate=func.now()
     )
+
+    # Dynamic attributes
+    @declared_attr.directive
+    def __tablename__(cls):
+        # Auto generate the table name based on the class name and custom prefix
+        return f"af_{cls.__name__.lower()}"

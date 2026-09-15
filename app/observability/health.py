@@ -1,8 +1,8 @@
-from core.dependencies import AsyncSessionDep
 from fastapi import APIRouter, HTTPException, status
 from fastapi.logger import logger
 from sqlalchemy import text
 
+from app.core.dependencies import AsyncSessionDep
 from app.observability.dtos import HealthDTO
 
 router = APIRouter()
