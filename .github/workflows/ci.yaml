@@ -64,8 +64,5 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked --extra dev
 
-      - name: Run migrations
-        run: uv run --frozen alembic upgrade head
-
       - name: Run tests
-        run: uv run --frozen pytest
+        run: uv run --locked pytest

@@ -75,5 +75,3 @@ exclude_lines = [
 fail_under = 80
 omit = ["*/migrations/*", "*/tests/*", "*/__init__.py",  "*/config.py"]
 sort = "Cover"
-
-
