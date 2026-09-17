@@ -18,7 +18,6 @@ class AppSettings(BaseSettings):
     expose_headers: list[str] = ["*"]
 
 
-
 class DBSettings(BaseSettings):
     """Database settings."""
 
