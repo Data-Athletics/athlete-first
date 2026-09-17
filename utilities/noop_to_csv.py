@@ -30,11 +30,11 @@ import sys
 import tempfile
 import zipfile
 from collections import Counter
+from collections.abc import Iterator
 from contextlib import ExitStack
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
-from typing import Any, Iterator
-
+from typing import Any
 
 MIN_PLAUSIBLE_UNIX_S = 1_700_000_000
 FUTURE_MARGIN_S = 86_400
@@ -225,20 +225,18 @@ def find_archive_member(
     matches = [
         item
         for item in archive.infolist()
-        if not item.is_dir()
-        and PurePosixPath(item.filename).name.lower() in wanted
+        if not item.is_dir() and PurePosixPath(item.filename).name.lower() in wanted
     ]
     return matches[0] if matches else None
 
 
-def extract_database(
-    archive: zipfile.ZipFile, destination: Path
-) -> Path:
+def extract_database(archive: zipfile.ZipFile, destination: Path) -> Path:
     candidates = [
         item
         for item in archive.infolist()
         if not item.is_dir()
-        and PurePosixPath(item.filename).suffix.lower() in {".sqlite", ".sqlite3", ".db"}
+        and PurePosixPath(item.filename).suffix.lower()
+        in {".sqlite", ".sqlite3", ".db"}
     ]
     preferred = [
         item
@@ -293,7 +291,7 @@ def exported_at_seconds(manifest: dict[str, Any]) -> float | None:
     return seconds
 
 
-def iso_utc(seconds: float | int | None) -> str:
+def iso_utc(seconds: float | None) -> str:
     if seconds is None:
         return ""
     try:
@@ -302,7 +300,7 @@ def iso_utc(seconds: float | int | None) -> str:
             .isoformat(timespec="milliseconds")
             .replace("+00:00", "Z")
         )
-    except (OverflowError, OSError, ValueError):
+    except OverflowError, OSError, ValueError:
         return ""
 
 
@@ -315,9 +313,7 @@ def normalize_timestamp(value: Any) -> float | int | None:
     return int(number) if number.is_integer() else number
 
 
-def timestamp_status(
-    seconds: float | int | None, reference_seconds: float | None
-) -> str:
+def timestamp_status(seconds: float | None, reference_seconds: float | None) -> str:
     if seconds is None or not iso_utc(seconds):
         return "invalid_timestamp"
     if seconds < MIN_PLAUSIBLE_UNIX_S:
@@ -482,7 +478,9 @@ def write_csv(
                         continue
                 writer.writerow(
                     [
-                        safe_text(record[field]) if field in TEXT_FIELDS else record[field]
+                        safe_text(record[field])
+                        if field in TEXT_FIELDS
+                        else record[field]
                         for field in CSV_FIELDS
                     ]
                 )
@@ -556,7 +554,9 @@ def convert(args: argparse.Namespace) -> int:
     if args.only_plausible:
         print(f"Skipped {flagged:,} rows with implausible or invalid timestamps.")
     else:
-        print(f"Flagged {flagged:,} rows with implausible or invalid timestamps (kept).")
+        print(
+            f"Flagged {flagged:,} rows with implausible or invalid timestamps (kept)."
+        )
     if stream_counts:
         counts = ", ".join(
             f"{stream}={count:,}" for stream, count in sorted(stream_counts.items())
