@@ -5,7 +5,7 @@ set -eu
 
 function create_database() {
 	local database="$1"
-  local user="$POSTGRES_USER"
+	local user="$POSTGRES_USER"
   
 	echo "  Creating database '$database' and assigning to user '$user'"
 	psql -v ON_ERROR_STOP=1 --username "$user" <<-EOSQL

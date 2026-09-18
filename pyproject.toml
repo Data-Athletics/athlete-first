@@ -15,6 +15,12 @@ dependencies = [
    "sqlalchemy>=2.0.53,<2.1",
 ]
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app", "utilities", "tests"]  # Explicitly state what to look for
+namespaces = false
+
+
 [project.optional-dependencies]
 dev = [
     "black>=26.5.1,<26.6",
@@ -75,3 +81,8 @@ exclude_lines = [
 fail_under = 80
 omit = ["*/migrations/*", "*/tests/*", "*/__init__.py",  "*/config.py"]
 sort = "Cover"
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.6.2",
+]
