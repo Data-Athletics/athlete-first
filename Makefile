@@ -1,19 +1,16 @@
 .PHONY: dev run build test prod
 
-env:
-	
+build:
+	docker compose build
 
-build: env
-	docker-compose build
+run:
+	docker compose up --force-recreate --renew-anon-volumes
 
-run: env
-	docker-compose up --force-recreate --renew-anon-volumes
-
-dev: env build run
+dev: build run
 
 test:
 	docker compose run --rm athlete-first sh -c "/scripts/wait-for-db.sh test && pytest"
 
-prod: env
-	docker-compose up --build
+prod:
+	docker compose up --build
 

@@ -1,5 +1,5 @@
 from app.biometrics import decode_noop_csv
-from tests.biometrics import EXPECTED_NOOP_DATA
+from tests.mock import EXPECTED_NOOP_DATA
 
 
 def test_parse_noop_data():
