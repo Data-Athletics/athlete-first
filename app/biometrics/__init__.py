@@ -6,10 +6,10 @@ from .constants import (
 )
 from .decoder import decode_noop_csv
 from .types import (
+    BloodOxygenRaw,
     Gravity,
     HeartRate,
     NoopData,
-    OpticalRaw,
     RespirationRaw,
     RRInterval,
     SkinTemperatureRaw,
@@ -24,7 +24,7 @@ __all__ = [
     "Gravity",
     "HeartRate",
     "NoopData",
-    "OpticalRaw",
+    "BloodOxygenRaw",
     "RRInterval",
     "RespirationRaw",
     "SkinTemperatureRaw",

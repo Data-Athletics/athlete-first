@@ -12,6 +12,8 @@ from app.biometrics.types import NoopData
 
 
 def decode_noop_csv(file: BinaryIO) -> NoopData:
+    """Decodes csv file into data model for database insertion"""
+
     df = pd.read_csv(file)
     result: NoopData = NoopData()
 

@@ -1,10 +1,10 @@
 import datetime
 
 from app.biometrics import (
+    BloodOxygenRaw,
     Gravity,
     HeartRate,
     NoopData,
-    OpticalRaw,
     RespirationRaw,
     RRInterval,
     SkinTemperatureRaw,
@@ -55,12 +55,12 @@ EXPECTED_NOOP_DATA = NoopData(
         ),
     ],
     optical_raw=[
-        OpticalRaw(
+        BloodOxygenRaw(
             timestamp=dt("2025-04-27T14:46:47.000Z"),
             spo2_red_raw=661,
             spo2_ir_raw=723,
         ),
-        OpticalRaw(
+        BloodOxygenRaw(
             timestamp=dt("2025-04-27T14:46:47.048Z"),
             spo2_red_raw=661,
             spo2_ir_raw=723,
