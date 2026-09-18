@@ -1,56 +1,77 @@
 [project]
 name = "athlete-first"
-version = "0.1.0"
-requires-python = ">=3.14"
+dynamic = ["version"]
+requires-python = ">=3.13"
 dependencies = [
-    "agent-detector==2.0.0",
-    "annotated-doc==0.0.5",
-    "annotated-types==0.8.0",
-    "anyio==4.15.1",
-    "certifi==2026.7.22",
-    "click==8.5.0",
-    "colorama==0.4.6",
-    "detect-installer==0.2.1",
-    "dnspython==2.8.0",
-    "email-validator==2.3.0",
-    "fastapi==0.141.1",
-    "fastapi-cli==0.0.32",
-    "fastapi-cloud-cli==0.25.0",
-    "fastar==0.12.0",
-    "h11==0.16.0",
-    "httpcore==1.0.9",
-    "httptools==0.8.0",
-    "httpx==0.28.1",
-    "idna==3.19",
-    "iniconfig==2.3.0",
-    "jinja2==3.1.6",
-    "markdown-it-py==4.2.0",
-    "markupsafe==3.0.3",
-    "mdurl==0.1.2",
-    "packaging==26.3",
-    "pandas>=3.0.5",
-    "pluggy==1.6.0",
-    "pydantic==2.13.5",
-    "pydantic-core==2.46.5",
-    "pydantic-extra-types==2.11.1",
-    "pydantic-settings==2.15.0",
-    "pygments==2.21.0",
-    "pytest==9.1.1",
-    "python-dotenv==1.2.3",
-    "python-multipart==0.0.32",
-    "pyyaml==6.0.3",
-    "rich==15.0.0",
-    "rich-toolkit==0.20.4",
-    "rignore==0.8.1",
-    "ruff==0.16.6",
-    "sentry-sdk==2.68.1",
-    "shellingham==1.5.4",
-    "starlette==1.6.0",
-    "typer==0.27.2",
-    "typing-extensions==4.16.0",
-    "typing-inspection==0.4.4",
-    "urllib3==2.7.0",
-    "uvicorn==0.52.4",
-    "watchfiles==1.2.0",
-    "websockets==17.1",
+   "alembic>=1.20.0,<1.21",
+   "asyncpg>=0.31.0,<0.32",
+   "bcrypt>=5.0.0",
+   "fastapi[standard]>=0.141.1,<0.142",
+   "httpx>=0.28.1,<0.29",
+   "pandas>=3.0.5,<3.1",
+   "pydantic>=2.13.5,<2.14",
+   "pydantic-settings>=2.15.0,<2.16",
+   "pyjwt>=2.14.0,<2.15",
+   "sqlalchemy>=2.0.53,<2.1",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "black>=26.5.1,<26.6",
+    "faker>=40.39.0,<40.40",
+    "pytest>=9.1.1,<9.2",
+    "pytest-asyncio>=1.4.0,<1.5",
+    "pytest-cov>=7.1.0,<7.2",
+    "ruff>=0.16.7,<0.17",
+]
+server = [
+    "psycopg[c,pool]>=3.3.5,<3.4",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["app"]
+
+[tool.ruff]
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "ARG001", # unused arguments in functions
+    "B",  # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "E",  # pycodestyle errors
+    "F",  # pyflakes
+    "I",  # isort
+    "UP",  # pyupgrade
+    "W",  # pycodestyle warnings
+]
+ignore = [
+    "ARG001", # Unused function argument, caller of function may require certain kwargs present, but not all kwargs may be used
+    "B008",  # do not perform function calls in argument defaults
+    "B904",  # Allow raising exceptions without from e, for HTTPException
+    "E501",  # line too long, handled by black
+    "UP045", # Use `X | None` for type annotations
+    "UP017", # Use `datetime.UTC` alias (not recognized in current version of python)
+    "UP043", # Unnecessary default type arguments, ignore
+    "UP007", # Allow usage of Union type
+    "W191",  # indentation contains tabs
+]
+
+[tool.ruff.lint.pyupgrade]
+# Preserve types if a file imports `from __future__ import annotations`
+keep-runtime-typing = true
+
+[tool.coverage.run]
+source = ['.']
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "def __str__",
+]
+fail_under = 80
+omit = ["*/migrations/*", "*/tests/*", "*/__init__.py",  "*/config.py"]
+sort = "Cover"
