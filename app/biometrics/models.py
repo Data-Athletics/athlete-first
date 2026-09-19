@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey
+from sqlalchemy import DateTime
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import ModelBase
@@ -9,7 +9,7 @@ from app.core.database import ModelBase
 class UserRelationshipMixin:
     """Mixin for user specific biometrics"""
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    user_id: Mapped[int] = mapped_column()
 
 
 class TimestampMixin:

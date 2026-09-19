@@ -14,3 +14,30 @@ my-whoop,1745765207.048,2025-04-27T14:46:47.048Z,plausible_by_noop_bounds,gravit
 my-whoop,1745765207.048,2025-04-27T14:46:47.048Z,plausible_by_noop_bounds,optical_raw,spo2Sample,,,,,,,,,,,,,661,723,,,,,,,,,,0
 my-whoop,1745765207.048,2025-04-27T14:46:47.048Z,plausible_by_noop_bounds,skin_temperature_raw,skinTempSample,,,,,,,,,,,,,,,1419,1417,1421,,,,,,,0
 my-whoop,1745765207.048,2025-04-27T14:46:47.048Z,plausible_by_noop_bounds,respiration_raw,respSample,,,,,,,,,,,,,,,,,,3073,,,,,,0
+my-whoop,1745765207.096,2025-04-27T14:46:47.096Z,plausible_by_noop_bounds,heart_rate,hrSample,53,,,,,,,,,,,,,,,,,,,,,,,0
+my-whoop,1745765207.096,2025-04-27T14:46:47.096Z,plausible_by_noop_bounds,rr_interval,rrInterval,,1218,49.26,0,1,0,0,,,,,,,,,,,,,,,,,0
+my-whoop,1745765207.096,2025-04-27T14:46:47.096Z,plausible_by_noop_bounds,gravity,gravitySample,,,,,,,,0.067845121,0.675102884,0.736991204,1.00087,0.014,,,,,,,,,,,,0
+my-whoop,1745765207.096,2025-04-27T14:46:47.096Z,plausible_by_noop_bounds,optical_raw,spo2Sample,,,,,,,,,,,,,664,726,,,,,,,,,,0
+my-whoop,1745765207.096,2025-04-27T14:46:47.096Z,plausible_by_noop_bounds,skin_temperature_raw,skinTempSample,,,,,,,,,,,,,,,1421,1419,1423,,,,,,,0
+my-whoop,1745765207.096,2025-04-27T14:46:47.096Z,plausible_by_noop_bounds,respiration_raw,respSample,,,,,,,,,,,,,,,,,,3075,,,,,,0
+my-whoop,1745765207.144,2025-04-27T14:46:47.144Z,plausible_by_noop_bounds,heart_rate,hrSample,53,,,,,,,,,,,,,,,,,,,,,,,0
+my-whoop,1745765207.144,2025-04-27T14:46:47.144Z,plausible_by_noop_bounds,rr_interval,rrInterval,,1196,50.17,0,2,0,0,,,,,,,,,,,,,,,,,0
+my-whoop,1745765207.144,2025-04-27T14:46:47.144Z,plausible_by_noop_bounds,gravity,gravitySample,,,,,,,,0.065992314,0.677441203,0.735884112,1.00031,0.013,,,,,,,,,,,,0
+my-whoop,1745765207.144,2025-04-27T14:46:47.144Z,plausible_by_noop_bounds,optical_raw,spo2Sample,,,,,,,,,,,,,667,729,,,,,,,,,,0
+my-whoop,1745765207.144,2025-04-27T14:46:47.144Z,plausible_by_noop_bounds,skin_temperature_raw,skinTempSample,,,,,,,,,,,,,,,1424,1422,1426,,,,,,,0
+my-whoop,1745765207.144,2025-04-27T14:46:47.144Z,plausible_by_noop_bounds,respiration_raw,respSample,,,,,,,,,,,,,,,,,,3078,,,,,,0
+my-whoop,1745765207.192,2025-04-27T14:46:47.192Z,plausible_by_noop_bounds,heart_rate,hrSample,54,,,,,,,,,,,,,,,,,,,,,,,0
+my-whoop,1745765207.192,2025-04-27T14:46:47.192Z,plausible_by_noop_bounds,rr_interval,rrInterval,,1175,51.06,0,3,0,0,,,,,,,,,,,,,,,,,0
+my-whoop,1745765207.192,2025-04-27T14:46:47.192Z,plausible_by_noop_bounds,gravity,gravitySample,,,,,,,,0.064338927,0.679882144,0.734332009,0.99994,0.011,,,,,,,,,,,,0
+my-whoop,1745765207.192,2025-04-27T14:46:47.192Z,plausible_by_noop_bounds,optical_raw,spo2Sample,,,,,,,,,,,,,670,733,,,,,,,,,,0
+my-whoop,1745765207.192,2025-04-27T14:46:47.192Z,plausible_by_noop_bounds,skin_temperature_raw,skinTempSample,,,,,,,,,,,,,,,1427,1425,1429,,,,,,,0
+my-whoop,1745765207.192,2025-04-27T14:46:47.192Z,plausible_by_noop_bounds,respiration_raw,respSample,,,,,,,,,,,,,,,,,,3080,,,,,,0
+my-whoop,1745765207.240,2025-04-27T14:46:47.240Z,plausible_by_noop_bounds,heart_rate,hrSample,54,,,,,,,,,,,,,,,,,,,,,,,0
+my-whoop,1745765207.240,2025-04-27T14:46:47.240Z,plausible_by_noop_bounds,rr_interval,rrInterval,,1158,51.81,0,4,0,0,,,,,,,,,,,,,,,,,0
+my-whoop,1745765207.240,2025-04-27T14:46:47.240Z,plausible_by_noop_bounds,gravity,gravitySample,,,,,,,,0.062741105,0.681992731,0.732991822,1.00011,0.01,,,,,,,,,,,,0
+my-whoop,1745765207.240,2025-04-27T14:46:47.240Z,plausible_by_noop_bounds,optical_raw,spo2Sample,,,,,,,,,,,,,672,735,,,,,,,,,,0
+my-whoop,1745765207.240,2025-04-27T14:46:47.240Z,plausible_by_noop_bounds,skin_temperature_raw,skinTempSample,,,,,,,,,,,,,,,1430,1428,1432,,,,,,,0
+my-whoop,1745765207.240,2025-04-27T14:46:47.240Z,plausible_by_noop_bounds,respiration_raw,respSample,,,,,,,,,,,,,,,,,,3082,,,,,,0
+my-whoop,1745765207.288,2025-04-27T14:46:47.288Z,plausible_by_noop_bounds,battery,battery,,,,,,,,,,,,,,,,,,,87,4142,0,,,0
+my-whoop,1745765207.288,2025-04-27T14:46:47.288Z,plausible_by_noop_bounds,event,event,,,,,,,,,,,,,,,,,,,,,,BATTERY,"{""BATTERY"": {""soc"": 87, ""mv"": 4142}}",0
+my-whoop,1745765207.336,2025-04-27T14:46:47.336Z,plausible_by_noop_bounds,event,event,,,,,,,,,,,,,,,,,,,,,,SYNC,"{""SYNC"": {""status"": ""complete""}}",0
