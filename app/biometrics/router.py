@@ -1,3 +1,5 @@
+import sqlalchemy
+import sqlalchemy.exc
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
 from app.biometrics.decoder import decode_noop_csv
@@ -8,8 +10,10 @@ from app.core.dtos import SimpleResponseDTO
 biometrics_router = APIRouter()
 
 
-@biometrics_router.post("", response_model=SimpleResponseDTO)
-async def create_biometrics_route(db: AsyncSessionDep, file: UploadFile = File(...)):
+@biometrics_router.post("/{user_id}", response_model=SimpleResponseDTO)
+async def create_biometrics_route(
+    db: AsyncSessionDep, user_id: int, file: UploadFile = File(...)
+):
     """Create many biometrics rows from a csv upload"""
 
     if file.filename and not file.filename.endswith(".csv"):
@@ -19,6 +23,14 @@ async def create_biometrics_route(db: AsyncSessionDep, file: UploadFile = File(.
         )
 
     noop_data = decode_noop_csv(file.file)
-    await bulk_upload_noop_data(db, noop_data)
+
+    try:
+        await bulk_upload_noop_data(db, user_id, noop_data)
+    except sqlalchemy.exc.NoReferencedTableError as e:
+        if "user_id" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User id does not exist to upload data to.",
+            )
 
     return SimpleResponseDTO(detail="Noop data uploaded", code=201)

@@ -137,19 +137,20 @@ class NoopData(BaseModel):
                 assert isinstance(value, RespirationRawDTO)
                 self.respiration_raw.append(value)
 
-    def to_models(self) -> NoopDataModels:
+    def to_models(self, user_id: int) -> NoopDataModels:
         """
         Convert all stored DTOs into their SQLAlchemy model counterparts.
         Returns a NoopDataModels for bulk insertion.
         """
         return NoopDataModels(
             heart_rate=[
-                HeartRateModel(timestamp=dto.timestamp, bpm=dto.hr_bpm)
+                HeartRateModel(timestamp=dto.timestamp, user_id=user_id, bpm=dto.hr_bpm)
                 for dto in self.heart_rate
             ],
             rr_interval=[
                 RRIntervalModel(
                     timestamp=dto.timestamp,
+                    user_id=user_id,
                     rr_ms=dto.rr_ms,
                     rr_instant_bpm=dto.rr_instant_bpm,
                 )
@@ -158,6 +159,7 @@ class NoopData(BaseModel):
             gravity=[
                 GravityModel(
                     timestamp=dto.timestamp,
+                    user_id=user_id,
                     gravity_x=dto.gravity_x,
                     gravity_y=dto.gravity_y,
                     gravity_z=dto.gravity_z,
@@ -168,6 +170,7 @@ class NoopData(BaseModel):
             optical_raw=[
                 BloodOxygenRawModel(
                     timestamp=dto.timestamp,
+                    user_id=user_id,
                     spo2_red_raw=dto.spo2_red_raw,
                     spo2_ir_raw=dto.spo2_ir_raw,
                 )
@@ -175,12 +178,16 @@ class NoopData(BaseModel):
             ],
             skin_temperature_raw=[
                 SkinTemperatureRawModel(
-                    timestamp=dto.timestamp, skin_temp_raw=dto.skin_temp_raw
+                    timestamp=dto.timestamp,
+                    user_id=user_id,
+                    skin_temp_raw=dto.skin_temp_raw,
                 )
                 for dto in self.skin_temperature_raw
             ],
             respiration_raw=[
-                RespirationRawModel(timestamp=dto.timestamp, resp_raw=dto.resp_raw)
+                RespirationRawModel(
+                    timestamp=dto.timestamp, user_id=user_id, resp_raw=dto.resp_raw
+                )
                 for dto in self.respiration_raw
             ],
         )
