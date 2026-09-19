@@ -15,7 +15,7 @@ services:
     env_file:
       - .env
     environment:
-      - PORT=9000
+      - PORT=8000
       - AF_env=dev
       - DB_host=postgres
       - DB_user=${DB_user:-devuser}
@@ -23,6 +23,31 @@ services:
       - DB_name=${DB_name:-devdatabase}
     depends_on:
       - postgres
+
+  pgadmin:
+    # Config adapted from: https://stackoverflow.com/a/77519799/10914922
+    image: dpage/pgadmin4
+    restart: unless-stopped
+    attach: false
+    ports:
+      - "8888:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@example.com
+      - PGADMIN_DEFAULT_PASSWORD=changeme
+      - PGADMIN_CONFIG_SERVER_MODE=False
+      - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
+    user: root
+    depends_on:
+      - postgres
+    entrypoint: /bin/sh -c "chmod 600 /pgpass; /entrypoint.sh;"
+    volumes:
+      - pgadmin-af-dev:/var/lib/pgadmin
+      - ./_pg_scripts:/root/scripts
+    configs:
+      - source: servers.json
+        target: /pgadmin4/servers.json
+      - source: pgpass
+        target: /pgpass
 
   postgres:
     image: postgres:17-alpine
@@ -40,3 +65,25 @@ services:
 
 volumes:
   postgres_data:
+  pgadmin-af-dev:
+
+configs:
+  pgpass:
+    content: postgres:5432:*:${DB_user:-devuser}:${DB_password:-devpass}
+  servers.json:
+    content: |
+      {
+        "Servers": {
+            "1": {
+                "Group": "Servers",
+                "Name": "Docker",
+                "Host": "postgres",
+                "Port": 5432,
+                "MaintenanceDB": "${DB_name:-devdatabase}",
+                "Username": "${DB_user:-devuser}",
+                "PassFile": "/pgpass",
+                "SSLMode": "prefer",
+                "Favorite": true
+            }
+        }
+      }

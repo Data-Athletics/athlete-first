@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.biometrics.router import biometrics_router
 from app.core.config import app_settings
 from app.core.database import ModelBase, get_engine
 from app.observability import router as observability_router
@@ -33,6 +34,7 @@ app.include_router(router)
 
 router.include_router(observability_router, prefix="/observability")
 router.include_router(user_router, prefix="/user")
+router.include_router(biometrics_router, prefix="/biometrics")
 
 app.add_middleware(
     CORSMiddleware,

@@ -1,10 +1,10 @@
 from app.biometrics.types import (
-    BloodOxygenRaw,
-    Gravity,
-    HeartRate,
-    RespirationRaw,
-    RRInterval,
-    SkinTemperatureRaw,
+    BloodOxygenRawDTO,
+    GravityDTO,
+    HeartRateDTO,
+    RespirationRawDTO,
+    RRIntervalDTO,
+    SkinTemperatureRawDTO,
     SourceType,
 )
 
@@ -39,12 +39,12 @@ NOOP_DATA_ROWS: dict[SourceType, list[str]] = {
 """Mapping of stream data type to columns of data we want to pull out"""
 
 NOOP_DATA_MODELS = {
-    "heart_rate": HeartRate,
-    "rr_interval": RRInterval,
-    "gravity": Gravity,
-    "optical_raw": BloodOxygenRaw,
-    "skin_temperature_raw": SkinTemperatureRaw,
-    "respiration_raw": RespirationRaw,
+    "heart_rate": HeartRateDTO,
+    "rr_interval": RRIntervalDTO,
+    "gravity": GravityDTO,
+    "optical_raw": BloodOxygenRawDTO,
+    "skin_temperature_raw": SkinTemperatureRawDTO,
+    "respiration_raw": RespirationRawDTO,
 }
 """Mapping of stream data type to data model that should be created"""
 
