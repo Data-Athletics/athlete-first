@@ -6,13 +6,13 @@ from .constants import (
 )
 from .decoder import decode_noop_csv
 from .types import (
-    BloodOxygenRaw,
-    Gravity,
-    HeartRate,
+    BloodOxygenRawDTO,
+    GravityDTO,
+    HeartRateDTO,
     NoopData,
-    RespirationRaw,
-    RRInterval,
-    SkinTemperatureRaw,
+    RespirationRawDTO,
+    RRIntervalDTO,
+    SkinTemperatureRawDTO,
     SourceType,
 )
 
@@ -21,13 +21,13 @@ __all__ = [
     "NOOP_DATA_ROWS",
     "NOOP_SOURCE_COLUMN",
     "NOOP_TIME_COLUMN",
-    "Gravity",
-    "HeartRate",
+    "GravityDTO",
+    "HeartRateDTO",
     "NoopData",
-    "BloodOxygenRaw",
-    "RRInterval",
-    "RespirationRaw",
-    "SkinTemperatureRaw",
+    "BloodOxygenRawDTO",
+    "RRIntervalDTO",
+    "RespirationRawDTO",
+    "SkinTemperatureRawDTO",
     "SourceType",
     "decode_noop_csv",
 ]
