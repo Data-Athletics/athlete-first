@@ -5,12 +5,13 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.auth.router import router as auth_router
 from app.biometrics.router import biometrics_router
 from app.core.config import app_settings
 from app.core.database import ModelBase, get_engine
 from app.core.dtos import SimpleResponseDTO
 from app.observability import router as observability_router
-from app.user import router as user_router
+from app.user.router import router as user_router
 
 
 @asynccontextmanager
@@ -37,6 +38,7 @@ app.include_router(router)
 router.include_router(observability_router, prefix="/observability")
 router.include_router(user_router, prefix="/user")
 router.include_router(biometrics_router, prefix="/biometrics")
+router.include_router(auth_router, prefix="/auth")
 
 
 @app.exception_handler(Exception)
