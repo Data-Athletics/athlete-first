@@ -12,6 +12,7 @@ class User(ModelBase):
     username: Mapped[str] = mapped_column(unique=True)
     hashed_password: Mapped[Optional[str]] = mapped_column(default=None, nullable=True)
     is_active: Mapped[bool] = mapped_column(default=True)
+    is_admin: Mapped[bool] = mapped_column(default=False)
 
     # Computed fields
     can_login: Mapped[bool] = mapped_column(

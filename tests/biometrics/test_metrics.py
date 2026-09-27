@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.biometrics.dtos.HRVResponseDTO import HRVResponseDTO
 from app.core.dtos import SimpleResponseDTO
 from tests.mock.biometrics.metrics import EXPECTED_HRV
-from tests.utils import create_test_user
+from tests.user.utils import create_test_user
 
 
 async def test_metrics_calculation(client: AsyncClient, db: AsyncSession):
