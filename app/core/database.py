@@ -1,4 +1,5 @@
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any, ClassVar
 
@@ -95,6 +96,12 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     """
     Provides an async generator that yields a database session and ensures
     its proper closer after usage.
+
+    Example:
+    ```
+    async for db in get_db_session():
+        await db.execute(...)
+    ```
     """
 
     async with get_session_factory()() as db_session:
@@ -106,6 +113,22 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
             raise
         finally:
             await db_session.close()
+
+
+@asynccontextmanager
+async def get_db_session_context() -> AsyncGenerator[AsyncSession, None]:
+    """
+    Initializes a new context yielding a connection to the database.
+
+    Example:
+    ```
+    async with get_db_session_context() as db:
+        await db.execute(...)
+    ```
+    """
+
+    async for db in get_db_session():
+        yield db
 
 
 class ModelBase(DeclarativeBase):

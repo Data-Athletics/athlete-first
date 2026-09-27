@@ -1,6 +1,7 @@
 from typing import Literal
 
 from pydantic import Field, SecretStr
+from pydantic.json_schema import SkipJsonSchema
 
 from app.auth.config import auth_settings
 from app.core.dtos import BaseDTO
@@ -18,6 +19,10 @@ class OAuthRequestDTO(BaseDTO):
         description="Used to determine what type of OAuth2.0 flow to use",
         default="password",
     )
+
+    # Fields allowed under OAuth2.0 spec, but are not used here
+    client_id: SkipJsonSchema[str] | None = None
+    client_secret: SkipJsonSchema[str] | None = None
 
 
 class OAuthResponseDTO(BaseDTO):

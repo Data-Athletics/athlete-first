@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException, status
+from typing import Annotated
+
+from fastapi import APIRouter, Form, HTTPException, status
 
 from app.auth.dtos import OAuthRequestDTO
 from app.auth.dtos.oauth_dto import OAuthResponseDTO
@@ -10,7 +12,7 @@ router = APIRouter()
 
 @router.post("/token")
 async def login_user_route(
-    db: AsyncSessionDep, body: OAuthRequestDTO
+    db: AsyncSessionDep, body: Annotated[OAuthRequestDTO, Form()]
 ) -> OAuthResponseDTO:
     """Authenticate user with their username/password"""
 

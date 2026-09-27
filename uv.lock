@@ -166,6 +166,7 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "pyjwt" },
     { name = "sqlalchemy" },
+    { name = "typer" },
 ]
 
 [package.optional-dependencies]
@@ -206,6 +207,7 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=7.1.0,<7.2" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.16.7,<0.17" },
     { name = "sqlalchemy", specifier = ">=2.0.53,<2.1" },
+    { name = "typer", specifier = ">=0.27.2" },
 ]
 provides-extras = ["dev", "server"]
 

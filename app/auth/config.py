@@ -11,7 +11,8 @@ class AuthSettings(BaseSettings):
     """General config for the authentication service"""
 
     jwt_secret_key: str = Field(
-        description="Key used to encrypt JWT tokens", default="insecure-changeme123456789abcdef"
+        description="Key used to encrypt JWT tokens",
+        default="insecure-changeme123456789abcdef",
     )
     jwt_algorithm: str = Field(
         description="The algorithm used to encrypt JWT tokens", default="HS256"
@@ -43,6 +44,10 @@ class AuthSettings(BaseSettings):
 
 
 auth_settings = AuthSettings()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=app_settings.api_prefix + "/auth/token")
+
+
+# oauth2_scheme = OAuth2PasswordBearer(tokenUrl=app_settings.api_prefix)
+
 
 __all__ = ["auth_settings", "oauth2_scheme"]

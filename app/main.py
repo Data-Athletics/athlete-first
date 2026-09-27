@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, FastAPI, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from app.auth.router import router as auth_router
 from app.biometrics.router import biometrics_router
@@ -29,16 +29,23 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(
     lifespan=lifespan,
     root_path=app_settings.api_prefix,
+    title=app_settings.title,
+    debug=app_settings.debug,
+    swagger_ui_parameters={
+        "persistAuthorization": app_settings.enable_swagger_persistent_auth
+    },
 )
 
 
 router = APIRouter()
 app.include_router(router)
 
-router.include_router(observability_router, prefix="/observability")
-router.include_router(user_router, prefix="/user")
-router.include_router(biometrics_router, prefix="/biometrics")
-router.include_router(auth_router, prefix="/auth")
+router.include_router(
+    observability_router, prefix="/observability", tags=["Observability"]
+)
+router.include_router(user_router, prefix="/user", tags=["User"])
+router.include_router(biometrics_router, prefix="/biometrics", tags=["Biometrics"])
+router.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 
 
 @app.exception_handler(Exception)
@@ -78,6 +85,7 @@ app.add_middleware(
 )
 
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 async def index():
-    return {"message": "Systems Operational"}
+    assert app.docs_url is not None
+    return RedirectResponse(app.docs_url)
