@@ -2,8 +2,9 @@ from datetime import datetime
 
 import sqlalchemy
 import sqlalchemy.exc
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
+from app.auth.dependencies import get_current_user
 from app.biometrics.decoder import decode_noop_csv
 from app.biometrics.dtos.AggregationsDTOs import (
     EffortStrainResponseDTO,
@@ -25,7 +26,7 @@ from app.biometrics.services import (
 from app.core.dependencies import AsyncSessionDep
 from app.core.dtos import SimpleResponseDTO
 
-biometrics_router = APIRouter()
+biometrics_router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
 @biometrics_router.post("/{user_id}", response_model=SimpleResponseDTO, status_code=201)

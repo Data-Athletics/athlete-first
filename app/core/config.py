@@ -10,7 +10,11 @@ class AppSettings(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="AF_")
 
+    title: str = "Athlete First API"
+
     env: Literal["dev", "test", "prod"] = "prod"
+    debug: bool = False
+    enable_swagger_persistent_auth: bool = True
     api_prefix: str = "/api/v1"
     allow_origins: list[str] = ["*"]
     allow_methods: list[str] = ["*"]

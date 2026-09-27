@@ -6,8 +6,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import app_settings, db_settings
 from app.core.database import ModelBase, get_db_session, get_engine
 from app.core.dtos import SimpleResponseDTO
-from app.main import app
-from tests.utils import create_test_user
+from app.main import app as main_app
+from app.user.models import User
+from tests.auth.utils import create_test_user_token
+from tests.user.utils import create_test_user
 
 
 @pytest.fixture(scope="session", name="settings", autouse=True)
@@ -65,16 +67,26 @@ async def session_fixture(engine):  # noqa: ARG001
             await db_session.rollback()
 
 
-@pytest.fixture(scope="function", name="client")
-async def client_fixture(db: AsyncSession):
-    """Create test api client with custom dependency overrides."""
+@pytest.fixture(scope="function", name="app", autouse=True)
+async def app_fixture(db: AsyncSession):
+    """Setup the fastapi app for each test"""
 
     async def get_session_override():
         async with db.begin_nested() as transaction:
             yield transaction.session
 
     # Make sure the api functions get the test database
-    app.dependency_overrides[get_db_session] = get_session_override
+    main_app.dependency_overrides[get_db_session] = get_session_override
+
+    yield main_app
+
+    # Reset the dependency injection overrides
+    main_app.dependency_overrides.clear()
+
+
+@pytest.fixture(scope="function", name="client")
+async def client_fixture(app):
+    """Create test api client with custom dependency overrides."""
 
     async with AsyncClient(
         transport=ASGITransport(app=app),
@@ -82,20 +94,16 @@ async def client_fixture(db: AsyncSession):
     ) as client:
         yield client
 
-    # Reset the dependency injection overrides
-    app.dependency_overrides.clear()
-
 
 @pytest.fixture(name="noop_user")
 async def noop_user_fixture(
-    client: AsyncClient,
-    db: AsyncSession,
+    admin_client: AsyncClient,
+    current_admin: User,
 ):
-    test_user = await create_test_user(db)
-    metrics_endpoint = f"/biometrics/{test_user.id}"
+    metrics_endpoint = f"/biometrics/{current_admin.id}"
 
     with open("tests/fixtures/noop_mock.csv", "rb") as file:
-        creation_response = await client.post(
+        creation_response = await admin_client.post(
             metrics_endpoint,
             files={"file": ("noop_mock.csv", file, "text/csv")},
         )
@@ -103,4 +111,31 @@ async def noop_user_fixture(
     SimpleResponseDTO.model_validate(creation_response.json())
     assert creation_response.status_code == 201
 
-    return test_user
+    return current_admin
+
+
+@pytest.fixture(scope="function", name="current_admin")
+async def current_admin_fixture(db: AsyncSession):
+    """Represents an API user with admin privileges"""
+
+    user = await create_test_user(db, is_admin=True)
+
+    yield user
+
+
+@pytest.fixture(scope="function", name="admin_client")
+async def admin_client_fixture(app, current_admin: User):
+    """HTTP client authenticated with an admin user
+
+    Best to use if an api's core functionality needs to be tested
+    but the permissions are not the central purpose of the test.
+    """
+
+    token = create_test_user_token(current_admin)
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test" + app_settings.api_prefix,
+        headers={"Authorization": f"Bearer {token}"},
+    ) as client:
+        yield client

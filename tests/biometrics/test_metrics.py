@@ -18,12 +18,12 @@ from tests.mock.biometrics.metrics import (
 )
 
 
-async def test_hrv_calculation(client: AsyncClient, noop_user: User):
+async def test_hrv_calculation(admin_client: AsyncClient, noop_user: User):
     """Check that HRV is calculated as expected"""
 
     metrics_endpoint = f"/biometrics/{noop_user.id}"
 
-    response = await client.get(
+    response = await admin_client.get(
         metrics_endpoint + "/hrv",
         params={
             "end_time": "2025-04-27T14:46:47.336Z",
@@ -36,12 +36,12 @@ async def test_hrv_calculation(client: AsyncClient, noop_user: User):
     assert hrv.hrv == pytest.approx(EXPECTED_HRV)
 
 
-async def test_rhr_calculation(client: AsyncClient, noop_user: User):
+async def test_rhr_calculation(admin_client: AsyncClient, noop_user: User):
     """Check that RHR is calculated as expected"""
 
     metrics_endpoint = f"/biometrics/{noop_user.id}"
 
-    response = await client.get(
+    response = await admin_client.get(
         metrics_endpoint + "/rhr",
         params={
             "start_time": "2025-04-27T14:46:47.000Z",
@@ -56,14 +56,14 @@ async def test_rhr_calculation(client: AsyncClient, noop_user: User):
 
 
 async def test_skin_temp_delta_calculation(
-    client: AsyncClient,
+    admin_client: AsyncClient,
     noop_user: User,
 ):
     """Check that skin temp delta is calculated as expected"""
 
     metrics_endpoint = f"/biometrics/{noop_user.id}"
 
-    response = await client.get(
+    response = await admin_client.get(
         metrics_endpoint + "/skin-temp-delta",
     )
 
@@ -73,12 +73,12 @@ async def test_skin_temp_delta_calculation(
     assert skin_temp.skin_temp_delta == pytest.approx(EXPECTED_SKIN_TEMP_DELTA)
 
 
-async def test_bpm_list(client: AsyncClient, noop_user: User):
+async def test_bpm_list(admin_client: AsyncClient, noop_user: User):
     """Check that BPM values are returned as expected"""
 
     metrics_endpoint = f"/biometrics/{noop_user.id}"
 
-    response = await client.get(
+    response = await admin_client.get(
         metrics_endpoint + "/bpm",
         params={
             "start_time": "2025-04-27T14:46:47.000Z",
@@ -93,14 +93,14 @@ async def test_bpm_list(client: AsyncClient, noop_user: User):
 
 
 async def test_respiratory_rate_calculation(
-    client: AsyncClient,
+    admin_client: AsyncClient,
     noop_user: User,
 ):
     """Check respiratory rate response with insufficient RR data"""
 
     metrics_endpoint = f"/biometrics/{noop_user.id}"
 
-    response = await client.get(
+    response = await admin_client.get(
         metrics_endpoint + "/respiratory-rate",
     )
 
@@ -111,14 +111,14 @@ async def test_respiratory_rate_calculation(
 
 
 async def test_effort_calculation(
-    client: AsyncClient,
+    admin_client: AsyncClient,
     noop_user: User,
 ):
     """Check that effort is calculated as expected"""
 
     metrics_endpoint = f"/biometrics/{noop_user.id}"
 
-    response = await client.get(
+    response = await admin_client.get(
         metrics_endpoint + "/effort",
     )
 

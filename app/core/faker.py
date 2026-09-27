@@ -4,7 +4,10 @@ from faker import Faker
 class CustomFaker(Faker):
     """Wrap Faker class to add custom methods."""
 
-    pass
+    def username(self):
+        """Alias for `user_name()`, generate a fake username"""
+
+        return self.user_name()
 
 
 fake = CustomFaker("en_US")
