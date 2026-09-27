@@ -5,7 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import app_settings, db_settings
 from app.core.database import ModelBase, get_db_session, get_engine
+from app.core.dtos import SimpleResponseDTO
 from app.main import app
+from tests.utils import create_test_user
 
 
 @pytest.fixture(scope="session", name="settings", autouse=True)
@@ -82,3 +84,23 @@ async def client_fixture(db: AsyncSession):
 
     # Reset the dependency injection overrides
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(name="noop_user")
+async def noop_user_fixture(
+    client: AsyncClient,
+    db: AsyncSession,
+):
+    test_user = await create_test_user(db)
+    metrics_endpoint = f"/biometrics/{test_user.id}"
+
+    with open("tests/fixtures/noop_mock.csv", "rb") as file:
+        creation_response = await client.post(
+            metrics_endpoint,
+            files={"file": ("noop_mock.csv", file, "text/csv")},
+        )
+
+    SimpleResponseDTO.model_validate(creation_response.json())
+    assert creation_response.status_code == 201
+
+    return test_user
