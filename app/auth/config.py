@@ -47,7 +47,4 @@ auth_settings = AuthSettings()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=app_settings.api_prefix + "/auth/token")
 
 
-# oauth2_scheme = OAuth2PasswordBearer(tokenUrl=app_settings.api_prefix)
-
-
 __all__ = ["auth_settings", "oauth2_scheme"]

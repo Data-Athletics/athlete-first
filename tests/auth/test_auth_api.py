@@ -11,21 +11,21 @@ async def test_user_login(db: AsyncSession, client: AsyncClient):
 
     # Unable to login with wrong password
     payload = {"username": "test", "password": "wrong-password"}
-    res = await client.post("/auth/token", json=payload)
+    res = await client.post("/auth/token", data=payload)
     assert res.status_code == 400
     data = res.json()
     assert "access_token" not in data
 
     # Unable to login with invalid username
     payload = {"username": "noexist", "password": "changeme"}
-    res = await client.post("/auth/token", json=payload)
+    res = await client.post("/auth/token", data=payload)
     assert res.status_code == 400
     data = res.json()
     assert "access_token" not in data
 
     # User can successfully login and get an access token
     payload = {"username": "test", "password": "changeme"}
-    res = await client.post("/auth/token", json=payload)
+    res = await client.post("/auth/token", data=payload)
     assert res.status_code == 200
 
     data = res.json()
