@@ -3,6 +3,7 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.services import authenticate_user
 from app.core.faker import fake
 from app.user.models import User
 from tests.user.utils import create_test_user, create_test_users
@@ -96,6 +97,25 @@ async def test_create_user(
     assert len(users.all()) == 2
 
 
+async def test_create_user_valid_password(db: AsyncSession, admin_client: AsyncClient):
+    """Should only create a user if the password meets requirements"""
+
+    # Allow password to be null
+    payload = {"username": fake.username()}
+    res = await admin_client.post("/user/users", json=payload)
+    assert res.status_code == 201
+
+    # Prevent password from being too short
+    payload = {"username": fake.username(), "password": "12345"}
+    res = await admin_client.post("/user/users", json=payload)
+    assert res.status_code == 422
+
+    # Valid password length
+    payload = {"username": fake.username(), "password": "123456"}
+    res = await admin_client.post("/user/users", json=payload)
+    assert res.status_code == 201
+
+
 async def test_update_user(
     db: AsyncSession, client: AsyncClient, admin_client: AsyncClient
 ):
@@ -177,3 +197,52 @@ async def test_delete_user(
 
     users_2 = await db.execute(select(User))
     assert len(users_2.all()) == 2
+
+
+async def test_update_current_user(
+    db: AsyncSession, admin_client: AsyncClient, current_admin: User
+):
+    """Should be able to update the current user"""
+
+    # TODO: Prevent non-admins from setting themselves as admin
+
+    another_user = await create_test_user(db)
+
+    # Set valid username
+    payload = {"username": current_admin.username + "-updated"}
+    res = await admin_client.patch("/user/me", json=payload)
+    assert res.status_code == 200
+
+    # Verify the data was saved
+    await db.refresh(current_admin)
+    assert current_admin.username == payload["username"]
+    old_username = payload["username"]
+
+    # Set duplicate username
+    payload = {"username": another_user.username}
+    res = await admin_client.patch("/user/me", json=payload)
+    assert res.status_code == 400
+
+    # Verify the old username is still set
+    await db.refresh(current_admin)
+    assert current_admin.username == old_username
+
+
+async def test_update_current_user_valid_password(
+    db: AsyncSession, admin_client: AsyncClient, current_admin: User
+):
+    """Should only be able to update password with a valid password"""
+
+    # Prevent setting password that's too short
+    payload = {"password": "12345"}
+    res = await admin_client.patch("/user/me", json=payload)
+    assert res.status_code == 422
+
+    # Allow setting password with valid length
+    payload = {"password": "123456"}
+    res = await admin_client.patch("/user/me", json=payload)
+    assert res.status_code == 200, res.content
+
+    # Verify the password saved
+    user = await authenticate_user(db, current_admin.username, payload["password"])
+    assert user is not None

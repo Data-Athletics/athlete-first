@@ -34,13 +34,12 @@ async def create_user_route(db: AsyncSessionDep, body: CreateUserDTO):
 
     data = body.model_dump()
     password_entry: SecretStr | None = data.pop("password", None)
-    hashed_password: str | None = None
 
     if password_entry is not None:
         password = password_entry.get_secret_value()
-        hashed_password = get_password_hash(password)
+        data["hashed_password"] = get_password_hash(password)
 
-    user = User(**data, hashed_password=hashed_password)
+    user = User(**data)
     db.add(user)
 
     # Try to save changes, raise 400 if there's a unique violation
@@ -117,7 +116,28 @@ async def retrieve_my_info(user: CurrentUserDep):
 async def update_my_info(db: AsyncSessionDep, user: CurrentUserDep, body: UpdateMeDTO):
     """Partially update info for the current user"""
 
-    raise NotImplementedError()
+    data = body.model_dump(exclude_unset=True)
+    password_entry: SecretStr | None = data.pop("password", None)
+
+    if password_entry is not None:
+        password = password_entry.get_secret_value()
+        data["hashed_password"] = get_password_hash(password)
+
+    for key, value in data.items():
+        setattr(user, key, value)
+
+    db.add(user)
+
+    try:
+        await db.flush()
+        await db.refresh(user)
+    except IntegrityError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User already exists with the new values",
+        ) from e
+
+    return user
 
 
 router.include_router(me_router)

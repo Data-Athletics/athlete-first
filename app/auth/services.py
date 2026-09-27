@@ -29,7 +29,7 @@ def verify_password_hash(plain_password: str, password_hash: str) -> bool:
 
 
 async def authenticate_user(
-    db: AsyncSession, username: str, password: SecretStr
+    db: AsyncSession, username: str, password: SecretStr | str
 ) -> User | None:
     """Get a user that matches the username and password"""
 
@@ -41,8 +41,14 @@ async def authenticate_user(
     if user is None or user.hashed_password is None:
         return None
 
+    # Extract the raw password
+    if isinstance(password, SecretStr):
+        raw_password = password.get_secret_value()
+    else:
+        raw_password = password
+
     # Return None if the passwords don't match
-    if not verify_password_hash(password.get_secret_value(), user.hashed_password):
+    if not verify_password_hash(raw_password, user.hashed_password):
         return None
 
     return user
