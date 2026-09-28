@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
+from jwt import ExpiredSignatureError
 from sqlalchemy import select
 
 from app.auth.config import oauth2_scheme
@@ -15,8 +16,9 @@ async def get_current_user(
     """Get the current user from their access token"""
 
     # Get and verify the token's claims
-    claims = TokenClaimsDTO.decode(token)
-    if claims.is_expired:
+    try:
+        claims = TokenClaimsDTO.decode(token)
+    except ExpiredSignatureError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Token is expired")
 
     # Get the user associated with the token
