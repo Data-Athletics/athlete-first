@@ -175,6 +175,34 @@ EXPECTED_NOOP_DATA = NoopData(
             timestamp=dt("2025-04-27T14:46:47.240Z"),
             skin_temp_raw=1430,
         ),
+        SkinTemperatureRawDTO(
+            timestamp=dt("2025-04-20T14:46:47.000Z"),
+            skin_temp_raw=1400,
+        ),
+        SkinTemperatureRawDTO(
+            timestamp=dt("2025-04-21T14:46:47.000Z"),
+            skin_temp_raw=1402,
+        ),
+        SkinTemperatureRawDTO(
+            timestamp=dt("2025-04-22T14:46:47.000Z"),
+            skin_temp_raw=1404,
+        ),
+        SkinTemperatureRawDTO(
+            timestamp=dt("2025-04-23T14:46:47.000Z"),
+            skin_temp_raw=1406,
+        ),
+        SkinTemperatureRawDTO(
+            timestamp=dt("2025-04-24T14:46:47.000Z"),
+            skin_temp_raw=1408,
+        ),
+        SkinTemperatureRawDTO(
+            timestamp=dt("2025-04-25T14:46:47.000Z"),
+            skin_temp_raw=1410,
+        ),
+        SkinTemperatureRawDTO(
+            timestamp=dt("2025-04-26T14:46:47.000Z"),
+            skin_temp_raw=1412,
+        ),
     ],
     respiration_raw=[
         RespirationRawDTO(
