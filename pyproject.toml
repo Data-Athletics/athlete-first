@@ -13,7 +13,6 @@ dependencies = [
    "pydantic>=2.13.5,<2.14",
    "pydantic-settings>=2.15.0,<2.16",
    "pyjwt>=2.14.0,<2.15",
-   "scipy>=1.18.1",
    "sqlalchemy>=2.0.53,<2.1",
    "typer>=0.27.2",
 ]

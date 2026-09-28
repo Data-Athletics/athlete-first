@@ -16,42 +16,39 @@ from tests.mock.biometrics.metrics import (
     EXPECTED_RHR,
     EXPECTED_SKIN_TEMP_DELTA,
 )
+from utilities.urls import create_biometrics_url
 
 
 async def test_hrv_calculation(admin_client: AsyncClient, noop_user: User):
     """Check that HRV is calculated as expected"""
 
-    metrics_endpoint = f"/biometrics/{noop_user.id}"
-
     response = await admin_client.get(
-        metrics_endpoint + "/hrv",
+        create_biometrics_url(noop_user) + "/hrv",
         params={
             "end_time": "2025-04-27T14:46:47.336Z",
         },
     )
 
-    hrv = HRVResponseDTO.model_validate(response.json())
-
     assert response.status_code == 200
+
+    hrv = HRVResponseDTO.model_validate(response.json())
     assert hrv.hrv == pytest.approx(EXPECTED_HRV)
 
 
 async def test_rhr_calculation(admin_client: AsyncClient, noop_user: User):
     """Check that RHR is calculated as expected"""
 
-    metrics_endpoint = f"/biometrics/{noop_user.id}"
-
     response = await admin_client.get(
-        metrics_endpoint + "/rhr",
+        create_biometrics_url(noop_user) + "/rhr",
         params={
             "start_time": "2025-04-27T14:46:47.000Z",
             "end_time": "2025-04-27T14:46:47.336Z",
         },
     )
 
-    rhr = RHRResponseDTO.model_validate(response.json())
-
     assert response.status_code == 200
+
+    rhr = RHRResponseDTO.model_validate(response.json())
     assert rhr.rhr == pytest.approx(EXPECTED_RHR)
 
 
@@ -61,34 +58,30 @@ async def test_skin_temp_delta_calculation(
 ):
     """Check that skin temp delta is calculated as expected"""
 
-    metrics_endpoint = f"/biometrics/{noop_user.id}"
-
     response = await admin_client.get(
-        metrics_endpoint + "/skin-temp-delta",
+        create_biometrics_url(noop_user) + "/skin-temp-delta",
     )
 
-    skin_temp = SkinTempDeltaResponseDTO.model_validate(response.json())
-
     assert response.status_code == 200
+
+    skin_temp = SkinTempDeltaResponseDTO.model_validate(response.json())
     assert skin_temp.skin_temp_delta == pytest.approx(EXPECTED_SKIN_TEMP_DELTA)
 
 
 async def test_bpm_list(admin_client: AsyncClient, noop_user: User):
     """Check that BPM values are returned as expected"""
 
-    metrics_endpoint = f"/biometrics/{noop_user.id}"
-
     response = await admin_client.get(
-        metrics_endpoint + "/bpm",
+        create_biometrics_url(noop_user) + "/bpm",
         params={
             "start_time": "2025-04-27T14:46:47.000Z",
             "end_time": "2025-04-27T14:46:47.240Z",
         },
     )
 
-    bpm = GraphResponseDTO.model_validate(response.json())
-
     assert response.status_code == 200
+
+    bpm = GraphResponseDTO.model_validate(response.json())
     assert bpm.y == [52, 52, 53, 53, 54, 54]
 
 
@@ -98,15 +91,13 @@ async def test_respiratory_rate_calculation(
 ):
     """Check respiratory rate response with insufficient RR data"""
 
-    metrics_endpoint = f"/biometrics/{noop_user.id}"
-
     response = await admin_client.get(
-        metrics_endpoint + "/respiratory-rate",
+        create_biometrics_url(noop_user) + "/respiratory-rate",
     )
 
-    respiratory_rate = RespiratoryRateResponseDTO.model_validate(response.json())
-
     assert response.status_code == 200
+
+    respiratory_rate = RespiratoryRateResponseDTO.model_validate(response.json())
     assert respiratory_rate.respiratory_rate is None
 
 
@@ -116,13 +107,11 @@ async def test_effort_calculation(
 ):
     """Check that effort is calculated as expected"""
 
-    metrics_endpoint = f"/biometrics/{noop_user.id}"
-
     response = await admin_client.get(
-        metrics_endpoint + "/effort",
+        create_biometrics_url(noop_user) + "/effort",
     )
 
-    effort = EffortStrainResponseDTO.model_validate(response.json())
-
     assert response.status_code == 200
+
+    effort = EffortStrainResponseDTO.model_validate(response.json())
     assert effort.effort == pytest.approx(EXPECTED_EFFORT)

@@ -99,6 +99,7 @@ async def get_respiratory_rate(
     db: AsyncSessionDep,
 ) -> RespiratoryRateResponseDTO:
     """Get a user's respiratory rate value."""
+
     rate = await respiratory_rate(db, user_id)
 
     return RespiratoryRateResponseDTO(

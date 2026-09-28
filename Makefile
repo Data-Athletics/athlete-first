@@ -1,6 +1,7 @@
-.PHONY: dev run build test prod
+.PHONY: dev run build test prod clean
 
 build:
+	uv sync
 	docker compose build
 
 run:
@@ -13,4 +14,7 @@ test:
 
 prod:
 	docker compose up --build
+
+clean:
+	docker compose down -v
 
