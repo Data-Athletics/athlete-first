@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.services import authenticate_user
+from app.core.faker import fake
 from app.user.models import User
 from tests.user.utils import base_user_payload, create_test_user, create_test_users
 
@@ -127,10 +128,9 @@ async def test_update_user(
 
     users = await create_test_users(db, count=2, hashed_password="some-hash")
     initial_usernames = (str(users[0].username), str(users[1].username))
+    initial_weights = (users[0].weight, users[1].weight)
 
-    payload1 = {
-        "username": initial_usernames[0] + "-updated",
-    }
+    payload1 = {"username": initial_usernames[0] + "-updated", "weight": fake.weight()}
 
     # Unauthenticated request
     res = await client.patch(f"/user/users/{users[0].id}", json=payload1)
@@ -150,6 +150,8 @@ async def test_update_user(
     await db.refresh(users[0])
     assert users[0].username == payload1["username"]
     assert users[1].username == initial_usernames[1]
+    assert users[0].weight == payload1["weight"]
+    assert users[1].weight == initial_weights[1]
 
     # Check unique violation
     payload2 = {"username": initial_usernames[1]}
