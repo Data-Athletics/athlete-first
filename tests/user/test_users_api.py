@@ -4,9 +4,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.services import authenticate_user
-from app.core.faker import fake
 from app.user.models import User
-from tests.user.utils import create_test_user, create_test_users
+from tests.user.utils import base_user_payload, create_test_user, create_test_users
 
 
 async def test_list_users(
@@ -69,7 +68,7 @@ async def test_create_user(
 
     # Create valid user
     payload = {
-        "username": fake.username(),
+        **base_user_payload(),
         "password": "changeme",
     }
 
@@ -79,7 +78,7 @@ async def test_create_user(
 
     # Create another valid user
     payload = {
-        "username": fake.username(),
+        **base_user_payload(),
         "password": "changeme",
     }
 
@@ -107,17 +106,16 @@ async def test_create_user_valid_password(db: AsyncSession, admin_client: AsyncC
     """Should only create a user if the password meets requirements"""
 
     # Allow password to be null
-    payload = {"username": fake.username()}
-    res = await admin_client.post("/user/users", json=payload)
+    res = await admin_client.post("/user/users", json=base_user_payload())
     assert res.status_code == 201
 
     # Prevent password from being too short
-    payload = {"username": fake.username(), "password": "12345"}
+    payload = {**base_user_payload(), "password": "12345"}
     res = await admin_client.post("/user/users", json=payload)
     assert res.status_code == 422
 
     # Valid password length
-    payload = {"username": fake.username(), "password": "123456"}
+    payload = {**base_user_payload(), "password": "123456"}
     res = await admin_client.post("/user/users", json=payload)
     assert res.status_code == 201
 
