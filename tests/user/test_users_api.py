@@ -75,14 +75,20 @@ async def test_create_user(
 
     # Unauthenticated request
     res = await client.post("/user/users", json=payload)
-    assert res.status_code == 401
+    assert res.status_code == 201
+
+    # Create another valid user
+    payload = {
+        "username": fake.username(),
+        "password": "changeme",
+    }
 
     # Authenticated request
     res = await admin_client.post("/user/users", json=payload)
     assert res.status_code == 201
 
     users = (await db.execute(select(User))).scalars().all()
-    assert len(users) == 2
+    assert len(users) == 3
 
     # Check the user that was created
     db_user = next(user for user in users if user.id == res.json()["id"])
@@ -94,7 +100,7 @@ async def test_create_user(
     assert res.status_code == 400
 
     users = await db.execute(select(User))
-    assert len(users.all()) == 2
+    assert len(users.all()) == 3
 
 
 async def test_create_user_valid_password(db: AsyncSession, admin_client: AsyncClient):
