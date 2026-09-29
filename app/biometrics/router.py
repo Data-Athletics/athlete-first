@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from app.auth.dependencies import get_current_user
 from app.biometrics.decoder import decode_noop_csv
 from app.biometrics.dtos.AggregationsDTOs import (
+    CaloriesResponseDTO,
     EffortStrainResponseDTO,
     GraphResponseDTO,
     HRVResponseDTO,
@@ -17,6 +18,7 @@ from app.biometrics.dtos.AggregationsDTOs import (
 from app.biometrics.services import (
     bulk_bpm_data,
     bulk_upload_noop_data,
+    calculate_calories,
     calculate_effort_strain,
     calculate_hrv,
     respiratory_rate,
@@ -121,6 +123,23 @@ async def get_effort_strain(
 
     return EffortStrainResponseDTO(
         effort=effort,
+    )
+
+
+@biometrics_router.get(
+    "/{user_id}/calories",
+    response_model=CaloriesResponseDTO,
+)
+async def get_calories(
+    user_id: int,
+    db: AsyncSessionDep,
+) -> CaloriesResponseDTO:
+    """Get a user's estimated calories."""
+
+    calories = await calculate_calories(db, user_id)
+
+    return CaloriesResponseDTO(
+        calories=calories,
     )
 
 

@@ -2,6 +2,7 @@ import pytest
 from httpx import AsyncClient
 
 from app.biometrics.dtos.AggregationsDTOs import (
+    CaloriesResponseDTO,
     EffortStrainResponseDTO,
     GraphResponseDTO,
     HRVResponseDTO,
@@ -115,3 +116,21 @@ async def test_effort_calculation(
 
     effort = EffortStrainResponseDTO.model_validate(response.json())
     assert effort.effort == pytest.approx(EXPECTED_EFFORT)
+
+
+async def test_calorie_calculation(
+    admin_client: AsyncClient,
+    noop_user: User,
+):
+    """Check that calories are calculated successfully"""
+
+    response = await admin_client.get(
+        create_biometrics_url(noop_user) + "/calories",
+    )
+
+    assert response.status_code == 200
+
+    calories = CaloriesResponseDTO.model_validate(response.json())
+
+    assert calories.calories is not None
+    assert isinstance(calories.calories, float)

@@ -42,6 +42,14 @@ class EffortStrainResponseDTO(BaseModel):
     effort: float | None = Field(description="Strain/Effort value for a specific user")
 
 
+class CaloriesResponseDTO(BaseModel):
+    """Response object for calorie data"""
+
+    calories: float | None = Field(
+        description="Estimated calorie value for a specific user"
+    )
+
+
 class GraphResponseDTO(IntervalData):
     """Response object for (x, y) coordinate data"""
 
