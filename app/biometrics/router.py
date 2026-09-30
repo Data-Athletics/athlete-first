@@ -27,6 +27,7 @@ from app.biometrics.services import (
 )
 from app.core.dependencies import AsyncSessionDep
 from app.core.dtos import SimpleResponseDTO
+from app.user.dependencies import UserByIdDep
 
 biometrics_router = APIRouter(dependencies=[Depends(get_current_user)])
 
@@ -132,9 +133,21 @@ async def get_effort_strain(
 )
 async def get_calories(
     user_id: int,
+    user: UserByIdDep,
     db: AsyncSessionDep,
 ) -> CaloriesResponseDTO:
     """Get a user's estimated calories."""
+
+    if (
+        user.height is None
+        or user.weight is None
+        or user.sex is None
+        or user.age is None
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User must have all of height, weight, sex, and age to calculate calories.",
+        )
 
     calories = await calculate_calories(db, user_id)
 

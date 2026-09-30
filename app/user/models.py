@@ -16,16 +16,16 @@ class User(ModelBase):
     is_active: Mapped[bool] = mapped_column(default=True)
     is_admin: Mapped[bool] = mapped_column(default=False)
 
-    height: Mapped[float] = mapped_column()
+    height: Mapped[float | None] = mapped_column(nullable=True)
     """Height in inches"""
 
-    weight: Mapped[float] = mapped_column()
+    weight: Mapped[float | None] = mapped_column(nullable=True)
     """Weight in pounds"""
 
-    sex: Mapped[UserSex] = mapped_column()
+    sex: Mapped[UserSex | None] = mapped_column(nullable=True)
     """Either Male or Female"""
 
-    age: Mapped[int] = mapped_column()
+    age: Mapped[int | None] = mapped_column(nullable=True)
     """Age in years"""
 
     # Computed fields

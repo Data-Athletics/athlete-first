@@ -1,5 +1,7 @@
 import pytest
+from fastapi import status
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.biometrics.dtos.AggregationsDTOs import (
     CaloriesResponseDTO,
@@ -134,3 +136,24 @@ async def test_calorie_calculation(
 
     assert calories.calories is not None
     assert isinstance(calories.calories, float)
+
+
+async def test_calorie_calculation_missing_user_data(
+    admin_client: AsyncClient,
+    noop_user: User,
+    db: AsyncSession,
+):
+    """Check that calories fail when required user data is missing"""
+
+    noop_user.height = None
+    await db.commit()
+    await db.refresh(noop_user)
+
+    response = await admin_client.get(
+        create_biometrics_url(noop_user) + "/calories",
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.json()["detail"] == (
+        "User must have all of height, weight, sex, and age to calculate calories."
+    )
