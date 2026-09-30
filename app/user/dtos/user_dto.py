@@ -9,21 +9,25 @@ class BaseUserDTO(BaseDTO):
 
     username: str = Field(description="Unique username")
 
-    height: float = Field(
+    height: float | None = Field(
+        default=None,
         description="Height in inches",
         gt=0,
     )
 
-    weight: float = Field(
+    weight: float | None = Field(
+        default=None,
         description="Weight in pounds",
         gt=0,
     )
 
-    sex: UserSex = Field(
+    sex: UserSex | None = Field(
+        default=None,
         description="User's sex",
     )
 
-    age: int = Field(
+    age: int | None = Field(
+        default=None,
         description="Age in years",
         gt=0,
     )

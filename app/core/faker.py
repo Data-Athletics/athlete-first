@@ -33,7 +33,7 @@ class CustomFaker(Faker):
     def age(self):
         """Returns random user age in years"""
 
-        return random.randint(0, 115)
+        return random.randint(1, 115)
 
 
 fake = CustomFaker("en_US")

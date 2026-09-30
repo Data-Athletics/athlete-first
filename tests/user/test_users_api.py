@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.services import authenticate_user
 from app.core.faker import fake
 from app.user.models import User
-from tests.user.utils import base_user_payload, create_test_user, create_test_users
+from tests.user.utils import create_test_user, create_test_users
 
 
 async def test_list_users(
@@ -69,26 +69,20 @@ async def test_create_user(
 
     # Create valid user
     payload = {
-        **base_user_payload(),
+        "username": fake.username(),
         "password": "changeme",
     }
 
     # Unauthenticated request
     res = await client.post("/user/users", json=payload)
-    assert res.status_code == 201
-
-    # Create another valid user
-    payload = {
-        **base_user_payload(),
-        "password": "changeme",
-    }
+    assert res.status_code == 401
 
     # Authenticated request
     res = await admin_client.post("/user/users", json=payload)
     assert res.status_code == 201
 
     users = (await db.execute(select(User))).scalars().all()
-    assert len(users) == 3
+    assert len(users) == 2
 
     # Check the user that was created
     db_user = next(user for user in users if user.id == res.json()["id"])
@@ -100,23 +94,24 @@ async def test_create_user(
     assert res.status_code == 400
 
     users = await db.execute(select(User))
-    assert len(users.all()) == 3
+    assert len(users.all()) == 2
 
 
 async def test_create_user_valid_password(db: AsyncSession, admin_client: AsyncClient):
     """Should only create a user if the password meets requirements"""
 
     # Allow password to be null
-    res = await admin_client.post("/user/users", json=base_user_payload())
+    payload = {"username": fake.username()}
+    res = await admin_client.post("/user/users", json=payload)
     assert res.status_code == 201
 
     # Prevent password from being too short
-    payload = {**base_user_payload(), "password": "12345"}
+    payload = {"username": fake.username(), "password": "12345"}
     res = await admin_client.post("/user/users", json=payload)
     assert res.status_code == 422
 
     # Valid password length
-    payload = {**base_user_payload(), "password": "123456"}
+    payload = {"username": fake.username(), "password": "123456"}
     res = await admin_client.post("/user/users", json=payload)
     assert res.status_code == 201
 
@@ -130,7 +125,10 @@ async def test_update_user(
     initial_usernames = (str(users[0].username), str(users[1].username))
     initial_weights = (users[0].weight, users[1].weight)
 
-    payload1 = {"username": initial_usernames[0] + "-updated", "weight": fake.weight()}
+    payload1 = {
+        "username": initial_usernames[0] + "-updated",
+        "weight": 180.0,
+    }
 
     # Unauthenticated request
     res = await client.patch(f"/user/users/{users[0].id}", json=payload1)
@@ -149,8 +147,8 @@ async def test_update_user(
 
     await db.refresh(users[0])
     assert users[0].username == payload1["username"]
-    assert users[1].username == initial_usernames[1]
     assert users[0].weight == payload1["weight"]
+    assert users[1].username == initial_usernames[1]
     assert users[1].weight == initial_weights[1]
 
     # Check unique violation
@@ -161,7 +159,9 @@ async def test_update_user(
 
     await db.refresh(users[0])
     assert users[0].username == payload1["username"]
+    assert users[0].weight == payload1["weight"]
     assert users[1].username == initial_usernames[1]
+    assert users[1].weight == initial_weights[1]
 
     # Cannot update another user's password
     payload3 = {

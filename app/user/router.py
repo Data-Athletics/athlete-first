@@ -1,5 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
-from fastapi.params import Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import SecretStr
 from sqlalchemy import desc, select
 from sqlalchemy.exc import IntegrityError
@@ -11,18 +10,25 @@ from app.user.dependencies import UserByIdDep
 from app.user.dtos.user_dto import CreateUserDTO, UpdateMeDTO, UpdateUserDTO, UserDTO
 from app.user.models import User
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)])
+
 
 # -------------------------------
-# Users Public Routes
+# Users CRUD Routes
 # -------------------------------
 
-public_users_router = APIRouter(prefix="/users")
+users_router = APIRouter(prefix="/users")
 
 
-@public_users_router.post(
-    "", response_model=UserDTO, status_code=status.HTTP_201_CREATED
-)
+@users_router.get("", response_model=list[UserDTO])
+async def list_users_route(db: AsyncSessionDep):
+    """Get a list of users from the database"""
+
+    res = await db.execute(select(User).order_by(desc(User.created_at)))
+    return res.scalars().all()
+
+
+@users_router.post("", response_model=UserDTO, status_code=status.HTTP_201_CREATED)
 async def create_user_route(db: AsyncSessionDep, body: CreateUserDTO):
     """Create a new user"""
 
@@ -46,23 +52,6 @@ async def create_user_route(db: AsyncSessionDep, body: CreateUserDTO):
         ) from e
 
     return user
-
-
-router.include_router(public_users_router)
-
-# -------------------------------
-# Users CRUD Routes
-# -------------------------------
-
-users_router = APIRouter(prefix="/users", dependencies=[Depends(get_current_user)])
-
-
-@users_router.get("", response_model=list[UserDTO])
-async def list_users_route(db: AsyncSessionDep):
-    """Get a list of users from the database"""
-
-    res = await db.execute(select(User).order_by(desc(User.created_at)))
-    return res.scalars().all()
 
 
 @users_router.get("/{user_id}", response_model=UserDTO)
@@ -113,7 +102,7 @@ router.include_router(users_router)
 # Current User (me) Routes
 # -------------------------------
 
-me_router = APIRouter(prefix="/me", dependencies=[Depends(get_current_user)])
+me_router = APIRouter(prefix="/me")
 
 
 @me_router.get("", response_model=UserDTO)
