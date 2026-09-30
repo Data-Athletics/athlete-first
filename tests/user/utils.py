@@ -23,10 +23,7 @@ async def create_test_user(db: Optional[AsyncSession] = None, **kwargs):
     """Create mock user for testing"""
 
     password = kwargs.pop("password", None)
-    payload = {
-        **base_user_payload(),
-        **kwargs,
-    }
+    payload = {**base_user_payload(), **kwargs}
 
     if password:
         payload["hashed_password"] = get_password_hash(password)

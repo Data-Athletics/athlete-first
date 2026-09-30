@@ -27,9 +27,7 @@ async def test_hrv_calculation(admin_client: AsyncClient, noop_user: User):
 
     response = await admin_client.get(
         create_biometrics_url(noop_user) + "/hrv",
-        params={
-            "end_time": "2025-04-27T14:46:47.336Z",
-        },
+        params={"end_time": "2025-04-27T14:46:47.336Z"},
     )
 
     assert response.status_code == 200
@@ -55,14 +53,11 @@ async def test_rhr_calculation(admin_client: AsyncClient, noop_user: User):
     assert rhr.rhr == pytest.approx(EXPECTED_RHR)
 
 
-async def test_skin_temp_delta_calculation(
-    admin_client: AsyncClient,
-    noop_user: User,
-):
+async def test_skin_temp_delta_calculation(admin_client: AsyncClient, noop_user: User):
     """Check that skin temp delta is calculated as expected"""
 
     response = await admin_client.get(
-        create_biometrics_url(noop_user) + "/skin-temp-delta",
+        create_biometrics_url(noop_user) + "/skin-temp-delta"
     )
 
     assert response.status_code == 200
@@ -88,14 +83,11 @@ async def test_bpm_list(admin_client: AsyncClient, noop_user: User):
     assert bpm.y == [52, 52, 53, 53, 54, 54]
 
 
-async def test_respiratory_rate_calculation(
-    admin_client: AsyncClient,
-    noop_user: User,
-):
+async def test_respiratory_rate_calculation(admin_client: AsyncClient, noop_user: User):
     """Check respiratory rate response with insufficient RR data"""
 
     response = await admin_client.get(
-        create_biometrics_url(noop_user) + "/respiratory-rate",
+        create_biometrics_url(noop_user) + "/respiratory-rate"
     )
 
     assert response.status_code == 200
@@ -104,15 +96,10 @@ async def test_respiratory_rate_calculation(
     assert respiratory_rate.respiratory_rate is None
 
 
-async def test_effort_calculation(
-    admin_client: AsyncClient,
-    noop_user: User,
-):
+async def test_effort_calculation(admin_client: AsyncClient, noop_user: User):
     """Check that effort is calculated as expected"""
 
-    response = await admin_client.get(
-        create_biometrics_url(noop_user) + "/effort",
-    )
+    response = await admin_client.get(create_biometrics_url(noop_user) + "/effort")
 
     assert response.status_code == 200
 
@@ -120,15 +107,10 @@ async def test_effort_calculation(
     assert effort.effort == pytest.approx(EXPECTED_EFFORT)
 
 
-async def test_calorie_calculation(
-    admin_client: AsyncClient,
-    noop_user: User,
-):
+async def test_calorie_calculation(admin_client: AsyncClient, noop_user: User):
     """Check that calories are calculated successfully"""
 
-    response = await admin_client.get(
-        create_biometrics_url(noop_user) + "/calories",
-    )
+    response = await admin_client.get(create_biometrics_url(noop_user) + "/calories")
 
     assert response.status_code == 200
 
@@ -139,9 +121,7 @@ async def test_calorie_calculation(
 
 
 async def test_calorie_calculation_missing_user_data(
-    admin_client: AsyncClient,
-    noop_user: User,
-    db: AsyncSession,
+    admin_client: AsyncClient, noop_user: User, db: AsyncSession
 ):
     """Check that calories fail when required user data is missing"""
 
@@ -149,9 +129,7 @@ async def test_calorie_calculation_missing_user_data(
     await db.commit()
     await db.refresh(noop_user)
 
-    response = await admin_client.get(
-        create_biometrics_url(noop_user) + "/calories",
-    )
+    response = await admin_client.get(create_biometrics_url(noop_user) + "/calories")
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.json()["detail"] == (

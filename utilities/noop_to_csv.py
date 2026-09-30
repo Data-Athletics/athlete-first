@@ -136,11 +136,7 @@ STREAM_SPECS = (
     {
         "table": "spo2Sample",
         "stream": "optical_raw",
-        "columns": {
-            "red": "spo2_red_raw",
-            "ir": "spo2_ir_raw",
-            "synced": "synced",
-        },
+        "columns": {"red": "spo2_red_raw", "ir": "spo2_ir_raw", "synced": "synced"},
         "tie": (),
     },
     {
@@ -163,19 +159,13 @@ STREAM_SPECS = (
     {
         "table": "stepSample",
         "stream": "steps",
-        "columns": {
-            "counter": "step_counter",
-            "activityClass": "step_activity_class",
-        },
+        "columns": {"counter": "step_counter", "activityClass": "step_activity_class"},
         "tie": (),
     },
     {
         "table": "sleepStateSample",
         "stream": "sleep_state",
-        "columns": {
-            "state": "sleep_state",
-            "rawByte": "sleep_state_raw_byte",
-        },
+        "columns": {"state": "sleep_state", "rawByte": "sleep_state_raw_byte"},
         "tie": (),
     },
     {

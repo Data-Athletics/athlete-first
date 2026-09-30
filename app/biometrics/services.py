@@ -332,18 +332,12 @@ async def calculate_effort_strain(db: AsyncSessionDep, user_id: int) -> float | 
         """
     )
 
-    result = await db.execute(
-        query,
-        {"user_id": user_id},
-    )
+    result = await db.execute(query, {"user_id": user_id})
 
     return result.scalar_one()
 
 
-async def calculate_calories(
-    db: AsyncSessionDep,
-    user_id: int,
-) -> float | None:
+async def calculate_calories(db: AsyncSessionDep, user_id: int) -> float | None:
     """Calculate estimated calories for a user over their most recent day of HR data."""
 
     query = text(
@@ -475,9 +469,6 @@ async def calculate_calories(
         """
     )
 
-    result = await db.execute(
-        query,
-        {"user_id": user_id},
-    )
+    result = await db.execute(query, {"user_id": user_id})
 
     return result.scalar_one()

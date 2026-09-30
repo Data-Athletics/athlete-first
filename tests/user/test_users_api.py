@@ -68,10 +68,7 @@ async def test_create_user(
     """Should create a new user"""
 
     # Create valid user
-    payload = {
-        "username": fake.username(),
-        "password": "changeme",
-    }
+    payload = {"username": fake.username(), "password": "changeme"}
 
     # Unauthenticated request
     res = await client.post("/user/users", json=payload)
@@ -125,10 +122,7 @@ async def test_update_user(
     initial_usernames = (str(users[0].username), str(users[1].username))
     initial_weights = (users[0].weight, users[1].weight)
 
-    payload1 = {
-        "username": initial_usernames[0] + "-updated",
-        "weight": 180.0,
-    }
+    payload1 = {"username": initial_usernames[0] + "-updated", "weight": 180.0}
 
     # Unauthenticated request
     res = await client.patch(f"/user/users/{users[0].id}", json=payload1)
@@ -164,10 +158,7 @@ async def test_update_user(
     assert users[1].weight == initial_weights[1]
 
     # Cannot update another user's password
-    payload3 = {
-        "password": "changeme",
-        "hashed_password": "changeme",
-    }
+    payload3 = {"password": "changeme", "hashed_password": "changeme"}
 
     res = await admin_client.patch(f"/user/users/{users[0].id}", json=payload3)
     assert res.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT

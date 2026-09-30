@@ -63,8 +63,7 @@ class PostgresClient:
                 "bind": instance.db_engine,
             }
             instance.session_factory = async_sessionmaker(
-                **factory_kwargs,
-                class_=AsyncSession,
+                **factory_kwargs, class_=AsyncSession
             )
 
             # Add the client to the dictionary of instances

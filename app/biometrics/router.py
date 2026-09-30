@@ -79,13 +79,9 @@ async def get_rhr_from_start_and_end_time(
 
 
 @biometrics_router.get(
-    "/{user_id}/skin-temp-delta",
-    response_model=SkinTempDeltaResponseDTO,
+    "/{user_id}/skin-temp-delta", response_model=SkinTempDeltaResponseDTO
 )
-async def get_skin_temp_delta(
-    db: AsyncSessionDep,
-    user_id: int,
-):
+async def get_skin_temp_delta(db: AsyncSessionDep, user_id: int):
     """Get a user's skin temperature delta."""
 
     delta = await skin_temp_delta(db, user_id)
@@ -94,47 +90,32 @@ async def get_skin_temp_delta(
 
 
 @biometrics_router.get(
-    "/{user_id}/respiratory-rate",
-    response_model=RespiratoryRateResponseDTO,
+    "/{user_id}/respiratory-rate", response_model=RespiratoryRateResponseDTO
 )
 async def get_respiratory_rate(
-    user_id: int,
-    db: AsyncSessionDep,
+    user_id: int, db: AsyncSessionDep
 ) -> RespiratoryRateResponseDTO:
     """Get a user's respiratory rate value."""
 
     rate = await respiratory_rate(db, user_id)
 
-    return RespiratoryRateResponseDTO(
-        respiratory_rate=rate,
-    )
+    return RespiratoryRateResponseDTO(respiratory_rate=rate)
 
 
-@biometrics_router.get(
-    "/{user_id}/effort",
-    response_model=EffortStrainResponseDTO,
-)
+@biometrics_router.get("/{user_id}/effort", response_model=EffortStrainResponseDTO)
 async def get_effort_strain(
-    user_id: int,
-    db: AsyncSessionDep,
+    user_id: int, db: AsyncSessionDep
 ) -> EffortStrainResponseDTO:
     """Get a user's effort/strain value."""
 
     effort = await calculate_effort_strain(db, user_id)
 
-    return EffortStrainResponseDTO(
-        effort=effort,
-    )
+    return EffortStrainResponseDTO(effort=effort)
 
 
-@biometrics_router.get(
-    "/{user_id}/calories",
-    response_model=CaloriesResponseDTO,
-)
+@biometrics_router.get("/{user_id}/calories", response_model=CaloriesResponseDTO)
 async def get_calories(
-    user_id: int,
-    user: UserByIdDep,
-    db: AsyncSessionDep,
+    user_id: int, user: UserByIdDep, db: AsyncSessionDep
 ) -> CaloriesResponseDTO:
     """Get a user's estimated calories."""
 
@@ -151,9 +132,7 @@ async def get_calories(
 
     calories = await calculate_calories(db, user_id)
 
-    return CaloriesResponseDTO(
-        calories=calories,
-    )
+    return CaloriesResponseDTO(calories=calories)
 
 
 @biometrics_router.get("/{user_id}/bpm", response_model=GraphResponseDTO)

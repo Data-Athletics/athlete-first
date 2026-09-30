@@ -11,26 +11,14 @@ from app.biometrics.dtos.MetricsDTOs import (
     RRIntervalDTO,
     SkinTemperatureRawDTO,
 )
-from app.biometrics.models import (
-    BloodOxygenRaw as BloodOxygenRawModel,
-)
-from app.biometrics.models import (
-    Gravity as GravityModel,
-)
+from app.biometrics.models import BloodOxygenRaw as BloodOxygenRawModel
+from app.biometrics.models import Gravity as GravityModel
 
 # Import the SQLAlchemy models for conversion
-from app.biometrics.models import (
-    HeartRate as HeartRateModel,
-)
-from app.biometrics.models import (
-    RespirationRaw as RespirationRawModel,
-)
-from app.biometrics.models import (
-    RRInterval as RRIntervalModel,
-)
-from app.biometrics.models import (
-    SkinTemperatureRaw as SkinTemperatureRawModel,
-)
+from app.biometrics.models import HeartRate as HeartRateModel
+from app.biometrics.models import RespirationRaw as RespirationRawModel
+from app.biometrics.models import RRInterval as RRIntervalModel
+from app.biometrics.models import SkinTemperatureRaw as SkinTemperatureRawModel
 
 SourceType = Literal[
     "heart_rate",
