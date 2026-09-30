@@ -7,11 +7,23 @@ from app.core.faker import fake
 from app.user.models import User
 
 
+def base_user_payload():
+    """Creates a base user payload for testing convenience"""
+
+    return {
+        "username": fake.username(),
+        "height": fake.height(),
+        "weight": fake.weight(),
+        "sex": fake.sex(),
+        "age": fake.age(),
+    }
+
+
 async def create_test_user(db: Optional[AsyncSession] = None, **kwargs):
     """Create mock user for testing"""
 
     password = kwargs.pop("password", None)
-    payload = {"username": fake.username(), **kwargs}
+    payload = {**base_user_payload(), **kwargs}
 
     if password:
         payload["hashed_password"] = get_password_hash(password)

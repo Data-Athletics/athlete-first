@@ -19,9 +19,7 @@ async def login_user_route(
     # Retrieve the user from credentials
     user = await authenticate_user(db, username=body.username, password=body.password)
     if not user:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-        )
+        raise HTTPException(status.HTTP_400_BAD_REQUEST)
 
     # Create and return the JWT access token
     access_token = get_user_token(user)

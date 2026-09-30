@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from app.auth.dependencies import get_current_user
 from app.biometrics.decoder import decode_noop_csv
 from app.biometrics.dtos.AggregationsDTOs import (
+    CaloriesResponseDTO,
     EffortStrainResponseDTO,
     GraphResponseDTO,
     HRVResponseDTO,
@@ -17,6 +18,7 @@ from app.biometrics.dtos.AggregationsDTOs import (
 from app.biometrics.services import (
     bulk_bpm_data,
     bulk_upload_noop_data,
+    calculate_calories,
     calculate_effort_strain,
     calculate_hrv,
     respiratory_rate,
@@ -25,6 +27,7 @@ from app.biometrics.services import (
 )
 from app.core.dependencies import AsyncSessionDep
 from app.core.dtos import SimpleResponseDTO
+from app.user.dependencies import UserByIdDep
 
 biometrics_router = APIRouter(dependencies=[Depends(get_current_user)])
 
@@ -76,13 +79,9 @@ async def get_rhr_from_start_and_end_time(
 
 
 @biometrics_router.get(
-    "/{user_id}/skin-temp-delta",
-    response_model=SkinTempDeltaResponseDTO,
+    "/{user_id}/skin-temp-delta", response_model=SkinTempDeltaResponseDTO
 )
-async def get_skin_temp_delta(
-    db: AsyncSessionDep,
-    user_id: int,
-):
+async def get_skin_temp_delta(db: AsyncSessionDep, user_id: int):
     """Get a user's skin temperature delta."""
 
     delta = await skin_temp_delta(db, user_id)
@@ -91,37 +90,49 @@ async def get_skin_temp_delta(
 
 
 @biometrics_router.get(
-    "/{user_id}/respiratory-rate",
-    response_model=RespiratoryRateResponseDTO,
+    "/{user_id}/respiratory-rate", response_model=RespiratoryRateResponseDTO
 )
 async def get_respiratory_rate(
-    user_id: int,
-    db: AsyncSessionDep,
+    user_id: int, db: AsyncSessionDep
 ) -> RespiratoryRateResponseDTO:
     """Get a user's respiratory rate value."""
 
     rate = await respiratory_rate(db, user_id)
 
-    return RespiratoryRateResponseDTO(
-        respiratory_rate=rate,
-    )
+    return RespiratoryRateResponseDTO(respiratory_rate=rate)
 
 
-@biometrics_router.get(
-    "/{user_id}/effort",
-    response_model=EffortStrainResponseDTO,
-)
+@biometrics_router.get("/{user_id}/effort", response_model=EffortStrainResponseDTO)
 async def get_effort_strain(
-    user_id: int,
-    db: AsyncSessionDep,
+    user_id: int, db: AsyncSessionDep
 ) -> EffortStrainResponseDTO:
     """Get a user's effort/strain value."""
 
     effort = await calculate_effort_strain(db, user_id)
 
-    return EffortStrainResponseDTO(
-        effort=effort,
-    )
+    return EffortStrainResponseDTO(effort=effort)
+
+
+@biometrics_router.get("/{user_id}/calories", response_model=CaloriesResponseDTO)
+async def get_calories(
+    user_id: int, user: UserByIdDep, db: AsyncSessionDep
+) -> CaloriesResponseDTO:
+    """Get a user's estimated calories."""
+
+    if (
+        user.height is None
+        or user.weight is None
+        or user.sex is None
+        or user.age is None
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User must have all of height, weight, sex, and age to calculate calories.",
+        )
+
+    calories = await calculate_calories(db, user_id)
+
+    return CaloriesResponseDTO(calories=calories)
 
 
 @biometrics_router.get("/{user_id}/bpm", response_model=GraphResponseDTO)
