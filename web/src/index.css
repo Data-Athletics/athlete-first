@@ -1,0 +1,54 @@
+:root {
+  --text: #fffffc;
+  --bg: #131515;
+  --container-bg: #2b2c28;
+
+  --sans:
+    Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+
+  font: 18px/145% var(--sans);
+  letter-spacing: 0.18px;
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  @media (max-width: 1024px) {
+    font-size: 16px;
+  }
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  border: none;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+button,
+input {
+  color: black;
+  background-color: var(--text);
+  border: none;
+  border-radius: 20px;
+}
+
+button {
+  padding: 11px 33px;
+  width: 140px;
+}
+
+input {
+  padding: 11px 33px;
+}
