@@ -42,11 +42,24 @@ input {
   background-color: var(--text);
   border: none;
   border-radius: 20px;
+  transition: box-shadow 0.1s ease-in-out;
+}
+
+input:focus,
+button:focus {
+  outline: none;
+  box-shadow: 0 0 6px color-mix(in srgb, var(--container-bg), var(--text) 90%);
 }
 
 button {
   padding: 11px 33px;
   width: 140px;
+  user-select: none;
+  transition: background-color 0.05s ease-out;
+}
+
+button:active {
+  background-color: color-mix(in srgb, var(--container-bg), var(--text) 60%);
 }
 
 input {

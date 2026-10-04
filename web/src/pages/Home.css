@@ -30,17 +30,20 @@
   justify-content: center;
   flex-direction: row;
   width: 100%;
-  gap: 30px;
+  gap: 50px;
   margin-bottom: 12px;
 }
 
 .login-button {
   height: 45px;
   font-size: 18px;
+  align-self: flex-end;
 }
 
-.login-button:hover {
+.login-button:hover,
+.login-button:focus {
   text-decoration: underline;
+  cursor: pointer;
 }
 
 .input-title {

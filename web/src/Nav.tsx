@@ -1,13 +1,23 @@
-import "./Nav.css"
+import { useNavigate } from "react-router-dom";
+import "./Nav.css";
 
-function Nav() {
-    return (
-        <>
-            <div className="nav-container">
-                <h1>AthleteFirst</h1>
-            </div>
-        </>
-    )
-}
+const Nav = () => {
+  const navigate = useNavigate();
 
-export default Nav
+  const onTitleClick = () => {
+    console.log("Back Home!");
+    navigate("/");
+  };
+
+  return (
+    <>
+      <div className="nav-container">
+        <h1 className="title-header" onClick={onTitleClick}>
+          AthleteFirst
+        </h1>
+      </div>
+    </>
+  );
+};
+
+export default Nav;
