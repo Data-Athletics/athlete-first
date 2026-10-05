@@ -6,6 +6,7 @@
   padding: 20px;
   background-color: var(--container-bg);
   height: 105;
+  box-sizing: border-box;
 }
 
 .title-header {

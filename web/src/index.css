@@ -36,6 +36,11 @@ body {
   min-height: 100dvh;
 }
 
+.page-header {
+  font-weight: 400;
+  font-size: 36px;
+}
+
 button,
 input {
   color: black;
@@ -51,15 +56,27 @@ button:focus {
   box-shadow: 0 0 6px color-mix(in srgb, var(--container-bg), var(--text) 90%);
 }
 
+.button-selected {
+  text-decoration: underline;
+  box-shadow: 0 0 6px color-mix(in srgb, var(--container-bg), var(--text) 90%);
+}
+
 button {
   padding: 11px 33px;
   width: 140px;
   user-select: none;
   transition: background-color 0.05s ease-out;
+  height: 45px;
+  font-size: 18px;
 }
 
 button:active {
   background-color: color-mix(in srgb, var(--container-bg), var(--text) 60%);
+}
+
+button:hover {
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 input {

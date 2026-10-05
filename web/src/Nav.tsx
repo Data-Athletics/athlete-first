@@ -1,7 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import "./Nav.css";
 
-const Nav = () => {
+interface NavProps {
+  children?: React.ReactNode;
+}
+
+const Nav = ({ children }: NavProps) => {
   const navigate = useNavigate();
 
   const onTitleClick = () => {
@@ -15,6 +19,7 @@ const Nav = () => {
         <h1 className="title-header" onClick={onTitleClick}>
           AthleteFirst
         </h1>
+        {children}
       </div>
     </>
   );

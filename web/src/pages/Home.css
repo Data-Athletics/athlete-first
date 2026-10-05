@@ -11,16 +11,16 @@
   flex-direction: column;
   align-items: flex-start;
   background-color: var(--container-bg);
-  padding: 32px 106px 0px 106px;
+  padding: 32px 106px 20px 106px;
   border-radius: 10px;
-  height: 350px;
-  width: 650px;
+  height: 450px;
+  width: 900px;
+  box-sizing: border-box;
+  overflow-y: scroll;
 }
 
 .login-header {
   align-self: center;
-  font-weight: 400;
-  font-size: 36px;
   margin-top: 0;
   margin-bottom: 24px;
 }
@@ -35,15 +35,8 @@
 }
 
 .login-button {
-  height: 45px;
-  font-size: 18px;
   align-self: flex-end;
-}
-
-.login-button:hover,
-.login-button:focus {
-  text-decoration: underline;
-  cursor: pointer;
+  margin-top: auto;
 }
 
 .input-title {
