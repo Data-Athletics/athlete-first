@@ -9,6 +9,7 @@ from app.core.dependencies import AsyncSessionDep
 from app.user.dependencies import UserByIdDep
 from app.user.dtos.user_dto import CreateUserDTO, UpdateMeDTO, UpdateUserDTO, UserDTO
 from app.user.models import User
+from app.user.services import create_user
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
@@ -33,25 +34,7 @@ async def create_user_route(db: AsyncSessionDep, body: CreateUserDTO):
     """Create a new user"""
 
     data = body.model_dump()
-    password_entry: SecretStr | None = data.pop("password", None)
-
-    if password_entry is not None:
-        password = password_entry.get_secret_value()
-        data["hashed_password"] = get_password_hash(password)
-
-    user = User(**data)
-    db.add(user)
-
-    # Try to save changes, raise 400 if there's a unique violation
-    try:
-        await db.flush()
-        await db.refresh(user)
-    except IntegrityError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="User already exists"
-        ) from e
-
-    return user
+    return await create_user(db, **data)
 
 
 @users_router.get("/{user_id}", response_model=UserDTO)
