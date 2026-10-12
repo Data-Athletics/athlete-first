@@ -50,10 +50,15 @@ class UpdateUserDTO(BaseUserDTO):
     """Fields available to update for a user"""
 
     username: str | None = Field(default=None)
+
     height: float | None = Field(default=None, gt=0)
+
     weight: float | None = Field(default=None, gt=0)
+
     sex: UserSex | None = Field(default=None)
+
     age: int | None = Field(default=None, gt=0)
+
     is_active: bool | None = Field(default=None)
 
 
@@ -61,7 +66,11 @@ class UpdateMeDTO(SetPasswordMixin, BaseUserDTO):
     """Fields a user can update themselves"""
 
     username: str | None = Field(default=None)
+
     height: float | None = Field(default=None, gt=0)
+
     weight: float | None = Field(default=None, gt=0)
+
     sex: UserSex | None = Field(default=None)
+
     age: int | None = Field(default=None, gt=0)

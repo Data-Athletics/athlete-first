@@ -399,12 +399,12 @@ async def calculate_calories(db: AsyncSessionDep, user_id: int) -> float | None:
         bmr AS (
             SELECT
                 CASE
-                    WHEN sex = 'Male'
+                    WHEN sex = 'male'
                         THEN 88.362
                             + 13.397 * weight
                             + 4.799 * height
                             - 5.677 * age
-                    WHEN sex = 'Female'
+                    WHEN sex = 'female'
                         THEN 447.593
                             + 9.247 * weight
                             + 3.098 * height

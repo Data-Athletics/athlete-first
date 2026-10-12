@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import ModelBase
 
-UserSex = Literal["Male", "Female"]
+UserSex = Literal["male", "female"]
 
 
 class User(ModelBase):

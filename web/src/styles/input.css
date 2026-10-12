@@ -1,0 +1,26 @@
+.form-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  background-color: var(--container-bg);
+  padding: 32px 106px 20px 106px;
+  border-radius: 10px;
+  height: 450px;
+  width: 900px;
+  box-sizing: border-box;
+  overflow-y: scroll;
+}
+
+.input-title {
+  margin: 0;
+  font-weight: 400;
+  font-size: 20px;
+}
+
+.login-input {
+  margin-top: 5px;
+  margin-bottom: 16px;
+  width: 300px;
+  padding: 10px;
+  font-size: 16px;
+}

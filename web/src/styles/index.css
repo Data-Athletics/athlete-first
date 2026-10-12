@@ -62,7 +62,7 @@ button:focus {
 }
 
 button {
-  padding: 11px 33px;
+  padding: 11px 23px;
   width: 140px;
   user-select: none;
   transition: background-color 0.05s ease-out;
@@ -81,4 +81,9 @@ button:hover {
 
 input {
   padding: 11px 33px;
+}
+
+.page-container {
+  box-sizing: border-box;
+  margin: 23px 76px 23px 76px;
 }
