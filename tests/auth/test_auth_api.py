@@ -1,7 +1,10 @@
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.faker import fake
+from app.user.models import User
 from tests.user.utils import create_test_user
+from tests.utils import model_count
 
 
 async def test_user_login(db: AsyncSession, client: AsyncClient):
@@ -45,3 +48,32 @@ async def test_user_login(db: AsyncSession, client: AsyncClient):
     data = res.json()
     assert "id" in data
     assert data["id"] == user.id
+
+
+async def test_user_registration(db: AsyncSession, client: AsyncClient):
+    """Unauthenticated users should be able to register an account"""
+
+    # A new user can register
+    payload = {
+        "username": fake.username(),
+        "password": "changeme",
+    }
+
+    res = await client.post("/auth/register", json=payload)
+    assert res.status_code == 201, res.content
+    assert await model_count(db, User) == 1
+
+    # The same user cannot register twice
+    res = await client.post("/auth/register", json=payload)
+    assert res.status_code == 400
+    assert await model_count(db, User) == 1
+
+    # The user can log in
+    res = await client.post("/auth/token", data=payload)
+    assert res.status_code == 200
+
+    data = res.json()
+    res = await client.get(
+        "/user/me", headers={"Authorization": f"Bearer {data['access_token']}"}
+    )
+    assert res.status_code == 200
