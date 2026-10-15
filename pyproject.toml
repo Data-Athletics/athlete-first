@@ -43,6 +43,9 @@ pythonpath = ["app"]
 [tool.ruff]
 target-version = "py313"
 
+[tool.ruff.format]
+skip-magic-trailing-comma = true
+
 [tool.ruff.lint]
 select = [
     "ARG001", # unused arguments in functions
@@ -65,6 +68,9 @@ ignore = [
     "UP007", # Allow usage of Union type
     "W191",  # indentation contains tabs
 ]
+
+[tool.ruff.lint.isort]
+split-on-trailing-comma = false
 
 [tool.ruff.lint.pyupgrade]
 # Preserve types if a file imports `from __future__ import annotations`

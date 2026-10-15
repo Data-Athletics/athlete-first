@@ -54,10 +54,7 @@ async def test_user_registration(db: AsyncSession, client: AsyncClient):
     """Unauthenticated users should be able to register an account"""
 
     # A new user can register
-    payload = {
-        "username": fake.username(),
-        "password": "changeme",
-    }
+    payload = {"username": fake.username(), "password": "changeme"}
 
     res = await client.post("/auth/register", json=payload)
     assert res.status_code == 201, res.content

@@ -4,8 +4,10 @@ from pydantic import BaseModel, Field
 
 
 class IntervalData(BaseModel):
-    start: datetime = Field(description="Start time for HRV measurement")
-    end: datetime = Field(description="End time for HRV measurement")
+    """Base object for data that contains an interval"""
+
+    start: datetime = Field(description="Start time for measurement")
+    end: datetime = Field(description="End time for measurement")
 
 
 class SkinTempDeltaResponseDTO(BaseModel):
@@ -40,6 +42,14 @@ class EffortStrainResponseDTO(BaseModel):
     """Response object for Strain/Effort data"""
 
     effort: float | None = Field(description="Strain/Effort value for a specific user")
+
+
+class CaloriesResponseDTO(BaseModel):
+    """Response object for calorie data"""
+
+    calories: float | None = Field(
+        description="Estimated calorie value for a specific user"
+    )
 
 
 class GraphResponseDTO(IntervalData):

@@ -4,7 +4,7 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 class BaseDTO(BaseModel):
     """Base class inherited by all DTOs."""
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
 
 
 class SimpleResponseDTO(BaseDTO):

@@ -96,16 +96,12 @@ async def client_fixture(app):
 
 
 @pytest.fixture(name="noop_user")
-async def noop_user_fixture(
-    admin_client: AsyncClient,
-    current_admin: User,
-):
+async def noop_user_fixture(admin_client: AsyncClient, current_admin: User):
     metrics_endpoint = f"/biometrics/{current_admin.id}"
 
     with open("tests/fixtures/noop_mock.csv", "rb") as file:
         creation_response = await admin_client.post(
-            metrics_endpoint,
-            files={"file": ("noop_mock.csv", file, "text/csv")},
+            metrics_endpoint, files={"file": ("noop_mock.csv", file, "text/csv")}
         )
 
     SimpleResponseDTO.model_validate(creation_response.json())

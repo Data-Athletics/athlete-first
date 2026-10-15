@@ -17,61 +17,31 @@ def dt(value: str) -> datetime.datetime:
 
 EXPECTED_NOOP_DATA = NoopData(
     heart_rate=[
-        HeartRateDTO(
-            timestamp=dt("2025-04-27T14:46:47.000Z"),
-            hr_bpm=52,
-        ),
-        HeartRateDTO(
-            timestamp=dt("2025-04-27T14:46:47.048Z"),
-            hr_bpm=52,
-        ),
-        HeartRateDTO(
-            timestamp=dt("2025-04-27T14:46:47.096Z"),
-            hr_bpm=53,
-        ),
-        HeartRateDTO(
-            timestamp=dt("2025-04-27T14:46:47.144Z"),
-            hr_bpm=53,
-        ),
-        HeartRateDTO(
-            timestamp=dt("2025-04-27T14:46:47.192Z"),
-            hr_bpm=54,
-        ),
-        HeartRateDTO(
-            timestamp=dt("2025-04-27T14:46:47.240Z"),
-            hr_bpm=54,
-        ),
+        HeartRateDTO(timestamp=dt("2025-04-27T14:46:47.000Z"), hr_bpm=52),
+        HeartRateDTO(timestamp=dt("2025-04-27T14:46:47.048Z"), hr_bpm=52),
+        HeartRateDTO(timestamp=dt("2025-04-27T14:46:47.096Z"), hr_bpm=53),
+        HeartRateDTO(timestamp=dt("2025-04-27T14:46:47.144Z"), hr_bpm=53),
+        HeartRateDTO(timestamp=dt("2025-04-27T14:46:47.192Z"), hr_bpm=54),
+        HeartRateDTO(timestamp=dt("2025-04-27T14:46:47.240Z"), hr_bpm=54),
     ],
     rr_interval=[
         RRIntervalDTO(
-            timestamp=dt("2025-04-27T14:46:47.000Z"),
-            rr_ms=1291,
-            rr_instant_bpm=46.48,
+            timestamp=dt("2025-04-27T14:46:47.000Z"), rr_ms=1291, rr_instant_bpm=46.48
         ),
         RRIntervalDTO(
-            timestamp=dt("2025-04-27T14:46:47.048Z"),
-            rr_ms=1242,
-            rr_instant_bpm=48.31,
+            timestamp=dt("2025-04-27T14:46:47.048Z"), rr_ms=1242, rr_instant_bpm=48.31
         ),
         RRIntervalDTO(
-            timestamp=dt("2025-04-27T14:46:47.096Z"),
-            rr_ms=1218,
-            rr_instant_bpm=49.26,
+            timestamp=dt("2025-04-27T14:46:47.096Z"), rr_ms=1218, rr_instant_bpm=49.26
         ),
         RRIntervalDTO(
-            timestamp=dt("2025-04-27T14:46:47.144Z"),
-            rr_ms=1196,
-            rr_instant_bpm=50.17,
+            timestamp=dt("2025-04-27T14:46:47.144Z"), rr_ms=1196, rr_instant_bpm=50.17
         ),
         RRIntervalDTO(
-            timestamp=dt("2025-04-27T14:46:47.192Z"),
-            rr_ms=1175,
-            rr_instant_bpm=51.06,
+            timestamp=dt("2025-04-27T14:46:47.192Z"), rr_ms=1175, rr_instant_bpm=51.06
         ),
         RRIntervalDTO(
-            timestamp=dt("2025-04-27T14:46:47.240Z"),
-            rr_ms=1158,
-            rr_instant_bpm=51.81,
+            timestamp=dt("2025-04-27T14:46:47.240Z"), rr_ms=1158, rr_instant_bpm=51.81
         ),
     ],
     gravity=[
@@ -120,114 +90,71 @@ EXPECTED_NOOP_DATA = NoopData(
     ],
     optical_raw=[
         BloodOxygenRawDTO(
-            timestamp=dt("2025-04-27T14:46:47.000Z"),
-            spo2_red_raw=661,
-            spo2_ir_raw=723,
+            timestamp=dt("2025-04-27T14:46:47.000Z"), spo2_red_raw=661, spo2_ir_raw=723
         ),
         BloodOxygenRawDTO(
-            timestamp=dt("2025-04-27T14:46:47.048Z"),
-            spo2_red_raw=661,
-            spo2_ir_raw=723,
+            timestamp=dt("2025-04-27T14:46:47.048Z"), spo2_red_raw=661, spo2_ir_raw=723
         ),
         BloodOxygenRawDTO(
-            timestamp=dt("2025-04-27T14:46:47.096Z"),
-            spo2_red_raw=664,
-            spo2_ir_raw=726,
+            timestamp=dt("2025-04-27T14:46:47.096Z"), spo2_red_raw=664, spo2_ir_raw=726
         ),
         BloodOxygenRawDTO(
-            timestamp=dt("2025-04-27T14:46:47.144Z"),
-            spo2_red_raw=667,
-            spo2_ir_raw=729,
+            timestamp=dt("2025-04-27T14:46:47.144Z"), spo2_red_raw=667, spo2_ir_raw=729
         ),
         BloodOxygenRawDTO(
-            timestamp=dt("2025-04-27T14:46:47.192Z"),
-            spo2_red_raw=670,
-            spo2_ir_raw=733,
+            timestamp=dt("2025-04-27T14:46:47.192Z"), spo2_red_raw=670, spo2_ir_raw=733
         ),
         BloodOxygenRawDTO(
-            timestamp=dt("2025-04-27T14:46:47.240Z"),
-            spo2_red_raw=672,
-            spo2_ir_raw=735,
+            timestamp=dt("2025-04-27T14:46:47.240Z"), spo2_red_raw=672, spo2_ir_raw=735
         ),
     ],
     skin_temperature_raw=[
         SkinTemperatureRawDTO(
-            timestamp=dt("2025-04-27T14:46:47.000Z"),
-            skin_temp_raw=1412,
+            timestamp=dt("2025-04-27T14:46:47.000Z"), skin_temp_raw=1412
         ),
         SkinTemperatureRawDTO(
-            timestamp=dt("2025-04-27T14:46:47.048Z"),
-            skin_temp_raw=1419,
+            timestamp=dt("2025-04-27T14:46:47.048Z"), skin_temp_raw=1419
         ),
         SkinTemperatureRawDTO(
-            timestamp=dt("2025-04-27T14:46:47.096Z"),
-            skin_temp_raw=1421,
+            timestamp=dt("2025-04-27T14:46:47.096Z"), skin_temp_raw=1421
         ),
         SkinTemperatureRawDTO(
-            timestamp=dt("2025-04-27T14:46:47.144Z"),
-            skin_temp_raw=1424,
+            timestamp=dt("2025-04-27T14:46:47.144Z"), skin_temp_raw=1424
         ),
         SkinTemperatureRawDTO(
-            timestamp=dt("2025-04-27T14:46:47.192Z"),
-            skin_temp_raw=1427,
+            timestamp=dt("2025-04-27T14:46:47.192Z"), skin_temp_raw=1427
         ),
         SkinTemperatureRawDTO(
-            timestamp=dt("2025-04-27T14:46:47.240Z"),
-            skin_temp_raw=1430,
+            timestamp=dt("2025-04-27T14:46:47.240Z"), skin_temp_raw=1430
         ),
         SkinTemperatureRawDTO(
-            timestamp=dt("2025-04-20T14:46:47.000Z"),
-            skin_temp_raw=1400,
+            timestamp=dt("2025-04-20T14:46:47.000Z"), skin_temp_raw=1400
         ),
         SkinTemperatureRawDTO(
-            timestamp=dt("2025-04-21T14:46:47.000Z"),
-            skin_temp_raw=1402,
+            timestamp=dt("2025-04-21T14:46:47.000Z"), skin_temp_raw=1402
         ),
         SkinTemperatureRawDTO(
-            timestamp=dt("2025-04-22T14:46:47.000Z"),
-            skin_temp_raw=1404,
+            timestamp=dt("2025-04-22T14:46:47.000Z"), skin_temp_raw=1404
         ),
         SkinTemperatureRawDTO(
-            timestamp=dt("2025-04-23T14:46:47.000Z"),
-            skin_temp_raw=1406,
+            timestamp=dt("2025-04-23T14:46:47.000Z"), skin_temp_raw=1406
         ),
         SkinTemperatureRawDTO(
-            timestamp=dt("2025-04-24T14:46:47.000Z"),
-            skin_temp_raw=1408,
+            timestamp=dt("2025-04-24T14:46:47.000Z"), skin_temp_raw=1408
         ),
         SkinTemperatureRawDTO(
-            timestamp=dt("2025-04-25T14:46:47.000Z"),
-            skin_temp_raw=1410,
+            timestamp=dt("2025-04-25T14:46:47.000Z"), skin_temp_raw=1410
         ),
         SkinTemperatureRawDTO(
-            timestamp=dt("2025-04-26T14:46:47.000Z"),
-            skin_temp_raw=1412,
+            timestamp=dt("2025-04-26T14:46:47.000Z"), skin_temp_raw=1412
         ),
     ],
     respiration_raw=[
-        RespirationRawDTO(
-            timestamp=dt("2025-04-27T14:46:47.000Z"),
-            resp_raw=3073,
-        ),
-        RespirationRawDTO(
-            timestamp=dt("2025-04-27T14:46:47.048Z"),
-            resp_raw=3073,
-        ),
-        RespirationRawDTO(
-            timestamp=dt("2025-04-27T14:46:47.096Z"),
-            resp_raw=3075,
-        ),
-        RespirationRawDTO(
-            timestamp=dt("2025-04-27T14:46:47.144Z"),
-            resp_raw=3078,
-        ),
-        RespirationRawDTO(
-            timestamp=dt("2025-04-27T14:46:47.192Z"),
-            resp_raw=3080,
-        ),
-        RespirationRawDTO(
-            timestamp=dt("2025-04-27T14:46:47.240Z"),
-            resp_raw=3082,
-        ),
+        RespirationRawDTO(timestamp=dt("2025-04-27T14:46:47.000Z"), resp_raw=3073),
+        RespirationRawDTO(timestamp=dt("2025-04-27T14:46:47.048Z"), resp_raw=3073),
+        RespirationRawDTO(timestamp=dt("2025-04-27T14:46:47.096Z"), resp_raw=3075),
+        RespirationRawDTO(timestamp=dt("2025-04-27T14:46:47.144Z"), resp_raw=3078),
+        RespirationRawDTO(timestamp=dt("2025-04-27T14:46:47.192Z"), resp_raw=3080),
+        RespirationRawDTO(timestamp=dt("2025-04-27T14:46:47.240Z"), resp_raw=3082),
     ],
 )
