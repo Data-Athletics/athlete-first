@@ -34,7 +34,7 @@ biometrics_router = APIRouter(dependencies=[Depends(get_current_user)])
 
 @biometrics_router.post("/{user_id}", response_model=SimpleResponseDTO, status_code=201)
 async def create_biometrics_route(
-    db: AsyncSessionDep, user_id: int, file: UploadFile = File(...)
+    db: AsyncSessionDep, user: UserByIdDep, file: UploadFile = File(...)
 ):
     """Create many biometrics rows from a csv upload"""
 
@@ -47,7 +47,7 @@ async def create_biometrics_route(
     noop_data = decode_noop_csv(file.file)
 
     try:
-        await bulk_upload_noop_data(db, user_id, noop_data)
+        await bulk_upload_noop_data(db, user.id, noop_data)
     except sqlalchemy.exc.NoReferencedTableError as e:
         if "user_id" in str(e):
             raise HTTPException(
@@ -59,21 +59,23 @@ async def create_biometrics_route(
 
 
 @biometrics_router.get("/{user_id}/hrv", response_model=HRVResponseDTO)
-async def get_hrv_from_end_time(db: AsyncSessionDep, user_id: int, end_time: datetime):
+async def get_hrv_from_end_time(
+    db: AsyncSessionDep, user: UserByIdDep, end_time: datetime
+):
     """Get a user's hrv value from the end_time to some past start time (current default 3 weeks)"""
 
-    hrv, start, end = await calculate_hrv(db, user_id, end_time)
+    hrv, start, end = await calculate_hrv(db, user.id, end_time)
 
     return HRVResponseDTO(hrv=hrv, start=start, end=end)
 
 
 @biometrics_router.get("/{user_id}/rhr", response_model=RHRResponseDTO)
 async def get_rhr_from_start_and_end_time(
-    db: AsyncSessionDep, user_id: int, start_time: datetime, end_time: datetime
+    db: AsyncSessionDep, user: UserByIdDep, start_time: datetime, end_time: datetime
 ):
     """Get a user's rhr value over an interval (10 minute bins)"""
 
-    rhr, start, end = await rhr_over_interval(db, user_id, start_time, end_time)
+    rhr, start, end = await rhr_over_interval(db, user.id, start_time, end_time)
 
     return RHRResponseDTO(rhr=rhr, start=start, end=end)
 
@@ -81,10 +83,10 @@ async def get_rhr_from_start_and_end_time(
 @biometrics_router.get(
     "/{user_id}/skin-temp-delta", response_model=SkinTempDeltaResponseDTO
 )
-async def get_skin_temp_delta(db: AsyncSessionDep, user_id: int):
+async def get_skin_temp_delta(db: AsyncSessionDep, user: UserByIdDep):
     """Get a user's skin temperature delta."""
 
-    delta = await skin_temp_delta(db, user_id)
+    delta = await skin_temp_delta(db, user.id)
 
     return SkinTempDeltaResponseDTO(skin_temp_delta=delta)
 
@@ -93,31 +95,37 @@ async def get_skin_temp_delta(db: AsyncSessionDep, user_id: int):
     "/{user_id}/respiratory-rate", response_model=RespiratoryRateResponseDTO
 )
 async def get_respiratory_rate(
-    user_id: int, db: AsyncSessionDep
+    user: UserByIdDep, db: AsyncSessionDep
 ) -> RespiratoryRateResponseDTO:
     """Get a user's respiratory rate value."""
 
-    rate = await respiratory_rate(db, user_id)
+    rate = await respiratory_rate(db, user.id)
 
     return RespiratoryRateResponseDTO(respiratory_rate=rate)
 
 
 @biometrics_router.get("/{user_id}/effort", response_model=EffortStrainResponseDTO)
 async def get_effort_strain(
-    user_id: int, db: AsyncSessionDep
+    user: UserByIdDep, db: AsyncSessionDep
 ) -> EffortStrainResponseDTO:
     """Get a user's effort/strain value."""
 
-    effort = await calculate_effort_strain(db, user_id)
+    effort = await calculate_effort_strain(db, user.id)
 
     return EffortStrainResponseDTO(effort=effort)
 
 
 @biometrics_router.get("/{user_id}/calories", response_model=CaloriesResponseDTO)
 async def get_calories(
-    user_id: int, user: UserByIdDep, db: AsyncSessionDep
+    db: AsyncSessionDep, user_id: int, user: UserByIdDep
 ) -> CaloriesResponseDTO:
     """Get a user's estimated calories."""
+
+    if user_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User is not authorized to access this data.",
+        )
 
     if (
         user.height is None
@@ -130,14 +138,14 @@ async def get_calories(
             detail="User must have all of height, weight, sex, and age to calculate calories.",
         )
 
-    calories = await calculate_calories(db, user_id)
+    calories = await calculate_calories(db, user.id)
 
     return CaloriesResponseDTO(calories=calories)
 
 
 @biometrics_router.get("/{user_id}/bpm", response_model=GraphResponseDTO)
 async def get_bpm_from_start_and_end_time(
-    db: AsyncSessionDep, user_id: int, start_time: datetime, end_time: datetime
+    db: AsyncSessionDep, user: UserByIdDep, start_time: datetime, end_time: datetime
 ):
     """Get a user's bpm data over an interval"""
 
@@ -148,7 +156,7 @@ async def get_bpm_from_start_and_end_time(
         )
 
     try:
-        return await bulk_bpm_data(db, user_id, start_time, end_time)
+        return await bulk_bpm_data(db, user.id, start_time, end_time)
     except sqlalchemy.exc.NoReferencedTableError as e:
         if "user_id" in str(e):
             raise HTTPException(
