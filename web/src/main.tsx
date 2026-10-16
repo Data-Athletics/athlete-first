@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, Outlet, RouterProvider } from "react-router-dom";
+import { BiometricsProvider } from "./contexts/biometrics/BiometricsProvider.tsx";
 import { UserProvider } from "./contexts/user/UserProvider.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
 import Home from "./pages/Home.tsx";
@@ -14,7 +15,9 @@ const router = createBrowserRouter([
   {
     element: (
       <UserProvider>
-        <Outlet />
+        <BiometricsProvider>
+          <Outlet />
+        </BiometricsProvider>
       </UserProvider>
     ),
     children: [

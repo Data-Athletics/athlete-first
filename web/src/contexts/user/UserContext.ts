@@ -7,7 +7,7 @@ export interface UserContextType {
   getMe: () => Promise<void>;
   login: (userLogin: UserLogin) => Promise<void>;
   signup: (userSignUp: UserSignUp) => Promise<void>;
-  updateUser: (userUpdate: UserUpdate) => Promise<void>;
+  updateMe: (userUpdate: UserUpdate) => Promise<User>;
   logout: () => void;
 }
 

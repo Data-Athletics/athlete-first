@@ -51,19 +51,29 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const signup = async (userSignUp: UserSignUp) => {
     setLoading(true);
-    const { data } = await api.post<User>("user/users", userSignUp);
-    await login({ username: data.username, password: userSignUp.password });
-    setUser(data);
+    const { data: signup_data } = await api.post<User>("auth/register", {
+      username: userSignUp.username,
+      password: userSignUp.password,
+    });
+    await login({
+      username: signup_data.username,
+      password: userSignUp.password,
+    });
+    const user_data = await updateMe({
+      height: userSignUp.height,
+      weight: userSignUp.weight,
+      age: userSignUp.age,
+      sex: userSignUp.sex,
+    });
+    setUser(user_data);
     setLoading(false);
   };
 
-  const updateUser = async (updateUser: UserUpdate) => {
-    const { data } = await api.patch<User>(
-      `user/users/${user?.id}`,
-      updateUser,
-    );
+  const updateMe = async (updateUser: UserUpdate): Promise<User> => {
+    const { data } = await api.patch<User>("user/me", updateUser);
     console.log(data);
     setUser(data);
+    return data;
   };
 
   const logout = () => {
@@ -94,7 +104,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         getMe,
         login,
         signup,
-        updateUser,
+        updateMe: updateMe,
         logout,
       }}
     >

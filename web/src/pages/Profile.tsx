@@ -3,11 +3,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../contexts/user/UserContext";
 import Nav from "../Nav";
+import { alertUser } from "../utils/alerts";
 import "./Home.css";
 import "./Profile.css";
 
 const Profile: React.FC = () => {
-  const { user, updateUser, logout } = useUser();
+  const { user, updateMe: updateUser, logout } = useUser();
 
   const navigate = useNavigate();
   const [height, setHeight] = useState(user?.height ?? 0);
@@ -15,7 +16,10 @@ const Profile: React.FC = () => {
   const [sex, setSex] = useState<string>(user?.sex ?? "");
   const [age, setAge] = useState(user?.age ?? 0);
 
+  const [updating, setUpdating] = useState(false);
+
   const onUpdateClick = async () => {
+    setUpdating(true);
     const loweredSex = sex.toLowerCase();
     if (loweredSex === "male" || loweredSex === "female") {
       await updateUser({
@@ -24,9 +28,11 @@ const Profile: React.FC = () => {
         sex: loweredSex,
         age,
       });
+      alertUser("Update Successful!");
     } else {
-      window.alert("Sex must be either 'male' or 'female'");
+      alertUser("Sex must be either 'male' or 'female'");
     }
+    setUpdating(false);
   };
 
   useEffect(() => {
@@ -88,7 +94,7 @@ const Profile: React.FC = () => {
             required
           />
           <button className="login-button" onClick={onUpdateClick}>
-            Update
+            {updating ? "Updating..." : "Update"}
           </button>
         </div>
       </div>
