@@ -1,6 +1,6 @@
 from enum import StrEnum
 
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import ModelBase, ValuesEnum
@@ -21,7 +21,11 @@ class Team(ModelBase):
 
     # Relationships
     memberships: Mapped[list["TeamMembership"]] = relationship(
-        back_populates="team", lazy="selectin", order_by="desc(TeamMembership.id)"
+        back_populates="team",
+        lazy="selectin",
+        order_by="desc(TeamMembership.id)",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
 
@@ -42,3 +46,5 @@ class TeamMembership(ModelBase):
     user: Mapped[User] = relationship(
         back_populates="memberships", foreign_keys=[user_id], lazy="joined"
     )
+
+    __table_args__ = (UniqueConstraint(team_id, user_id, name="uq_team_user"),)

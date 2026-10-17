@@ -66,7 +66,7 @@ async def test_list_team_memberships(
     assert len(data) == len(expected_user_ids)
 
     for obj in data:
-        assert obj["id"] in expected_user_ids
+        assert obj["user_id"] in expected_user_ids
 
     # Non-existing team
     res = await admin_client.get("/team/teams/100/memberships")
@@ -85,7 +85,7 @@ async def test_create_team_membership(
     # New user to team
     payload = {"user_id": user.id}
     res = await admin_client.post(f"/team/teams/{team.id}/memberships", json=payload)
-    assert res.status_code == 201
+    assert res.status_code == 201, res.content
 
     await db.refresh(team)
     assert len(team.memberships) == initial_mem_count + 1
@@ -100,7 +100,7 @@ async def test_create_team_membership(
     # Try to add non-existant user
     payload = {"user_id": 100}
     res = await admin_client.post(f"/team/teams/{team.id}/memberships", json=payload)
-    assert res.status_code == 422
+    assert res.status_code == 422, res.content
 
     await db.refresh(team)
     assert len(team.memberships) == initial_mem_count + 1
@@ -149,7 +149,7 @@ async def test_update_team_membership(
     old_user_id = int(membership.user_id)
     payload = {"user_id": other_user.id}
     res = await admin_client.patch(
-        f"/team/teams{team.id}/memberships/{membership.id}", json=payload
+        f"/team/teams/{team.id}/memberships/{membership.id}", json=payload
     )
     assert res.status_code == 422
 

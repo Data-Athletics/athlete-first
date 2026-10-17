@@ -10,6 +10,18 @@ from tests.user.utils import create_test_users
 from tests.utils import model_count
 
 
+async def test_list_teams(admin_client: AsyncClient, db: AsyncSession):
+    """Should be able to list all teams"""
+
+    await create_test_teams(db, count=3)
+
+    res = await admin_client.get("/team/teams")
+    assert res.status_code == 200
+
+    data = res.json()
+    assert len(data) == 3
+
+
 async def test_create_team(admin_client: AsyncClient, db: AsyncSession):
     """Should be able to create a new team"""
 
@@ -20,7 +32,7 @@ async def test_create_team(admin_client: AsyncClient, db: AsyncSession):
     payload = {"name": fake.phrase(3), "user_ids": user_ids}
 
     res = await admin_client.post("/team/teams", json=payload)
-    assert res.status_code == 201
+    assert res.status_code == 201, res.content
 
     data = res.json()
     assert "id" in data
@@ -94,6 +106,6 @@ async def test_delete_team(admin_client: AsyncClient, db: AsyncSession):
     # Check db state
     assert await model_count(db, Team) == 1
     assert await model_count(db, TeamMembership) == 0
-    assert await model_count(db, User) == 3
+    assert await model_count(db, User) == 3 + 1
 
     await db.refresh(tb)

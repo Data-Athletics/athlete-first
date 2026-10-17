@@ -136,6 +136,16 @@ async def get_db_session_context() -> AsyncGenerator[AsyncSession, None]:
 # ----------------------------------------
 
 
+class DBErrors(enum.StrEnum):
+    """Types of PostgreSQL errors that could be returned in a db exception
+
+    Ref: https://www.postgresql.org/docs/8.1/errcodes-appendix.html
+    """
+
+    UNIQUE_VIOLATION = "23505"
+    FOREIGN_KEY_VIOLATION = "23503"
+
+
 class ModelBase(DeclarativeBase):
     """Base class for SQLAlchemy models."""
 

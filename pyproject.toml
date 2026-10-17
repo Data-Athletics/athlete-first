@@ -87,7 +87,13 @@ exclude_lines = [
     "def __str__",
 ]
 fail_under = 80
-omit = ["*/migrations/*", "*/tests/*", "*/__init__.py",  "*/config.py"]
+omit = [
+    "*/migrations/*", 
+    "*/tests/*", 
+    "*/__init__.py",  
+    "*/config.py",
+    "utilities/noop_to_csv.py",
+]
 sort = "Cover"
 
 [dependency-groups]
