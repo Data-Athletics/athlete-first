@@ -18,10 +18,7 @@ async def create_test_team(
             "Must supply db connection if creating model relationships"
         )
 
-    payload = {
-        "name": fake.phrase(3),
-        **kwargs,
-    }
+    payload = {"name": fake.phrase(3), **kwargs}
 
     team = Team(**payload)
 
