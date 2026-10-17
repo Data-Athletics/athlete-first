@@ -10,6 +10,7 @@ import ProtectedRoute from "./ProtectedRoute.tsx";
 import "./styles/button.css";
 import "./styles/index.css";
 import "./styles/input.css";
+import "./styles/metric.css";
 
 const router = createBrowserRouter([
   {

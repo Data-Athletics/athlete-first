@@ -1,15 +1,17 @@
 import type React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import MetricSquare from "../components/MetricSquare";
 import { useBiometrics } from "../contexts/biometrics/BiometricsContext";
 import { useUser } from "../contexts/user/UserContext";
 import Nav from "../Nav";
+import type { GraphData } from "../types/Biometrics";
 import { alertUser } from "../utils/alerts";
 import "./Dashboard.css";
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useUser();
-  const { uploadCsv } = useBiometrics();
+  const { uploadCsv, skinTempDelta, bpmGraph } = useBiometrics();
   const navigate = useNavigate();
 
   const [uploading, setUploading] = useState(false);
@@ -40,10 +42,6 @@ const Dashboard: React.FC = () => {
     setUploading(false);
   };
 
-  useEffect(() => {
-    console.log(user);
-  }, [user]);
-
   return (
     <>
       <Nav>
@@ -71,9 +69,49 @@ const Dashboard: React.FC = () => {
             {uploading ? "Uploading..." : "Upload"}
           </button>
         </div>
+        <div className="metrics-container">
+          <MetricSquare
+            type="text"
+            title="Skin Temperature Delta"
+            value={getValueRepresentation(skinTempDelta)}
+          />
+          <MetricSquare
+            type="text"
+            title="Skin Temperature Delta"
+            value={getValueRepresentation(skinTempDelta)}
+          />
+          <MetricSquare
+            type="text"
+            title="Skin Temperature Delta"
+            value={getValueRepresentation(skinTempDelta)}
+          />
+          <MetricSquare
+            type="graph"
+            title="Beats Per Minute"
+            data={getGraphRepresentation(bpmGraph)}
+          />
+          <MetricSquare
+            type="graph"
+            title="Beats Per Minute"
+            data={getGraphRepresentation(bpmGraph)}
+          />
+          <MetricSquare
+            type="graph"
+            title="Beats Per Minute"
+            data={getGraphRepresentation(bpmGraph)}
+          />
+        </div>
       </div>
     </>
   );
 };
 
 export default Dashboard;
+
+const getValueRepresentation = (value: number | null) => {
+  return value ? String(value) : "...";
+};
+
+const getGraphRepresentation = (graph: GraphData | null) => {
+  return graph ?? { start: new Date(), end: new Date(), points: [] };
+};
