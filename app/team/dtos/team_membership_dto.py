@@ -29,4 +29,4 @@ class CreateTeamMembershipDTO(BaseTeamMembershipDTO):
 class UpdateTeamMembershipDTO(BaseTeamMembershipDTO):
     """Fields on a team membership that can be updated"""
 
-    pass
+    role: TeamRoleType | None = Field(default=None)
