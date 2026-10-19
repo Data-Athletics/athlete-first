@@ -14,6 +14,15 @@ class CustomFaker(Faker):
 
         return self.user_name()
 
+    def phrase(self, nb: int = 3):
+        """Create multi word phrase
+
+        Parameters:
+            nb (int): Number of words
+        """
+
+        return " ".join(self.words(nb))
+
     def height(self):
         """Returns random height in inches"""
 

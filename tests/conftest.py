@@ -57,7 +57,9 @@ async def session_fixture(engine):  # noqa: ARG001
             ]
 
             for table in target_table_names:
-                await conn.execute(text(f'TRUNCATE TABLE "{table}" CASCADE'))
+                await conn.execute(
+                    text(f'TRUNCATE TABLE "{table}" RESTART IDENTITY CASCADE')
+                )
 
             yield db_session
 

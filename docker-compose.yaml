@@ -38,10 +38,8 @@ services:
       - PGADMIN_DEFAULT_PASSWORD=changeme
       - PGADMIN_CONFIG_SERVER_MODE=False
       - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
-    user: root
     depends_on:
       - postgres
-    entrypoint: /bin/sh -c "chmod 600 /pgpass; /entrypoint.sh;"
     volumes:
       - pgadmin-af-dev:/var/lib/pgadmin
       - ./_pg_scripts:/root/scripts
@@ -50,6 +48,9 @@ services:
         target: /pgadmin4/servers.json
       - source: pgpass
         target: /pgpass
+        uid: "5050"
+        gid: "5050"
+        mode: "0600"
 
   postgres:
     image: postgres:17-alpine
