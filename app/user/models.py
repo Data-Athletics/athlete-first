@@ -6,10 +6,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import ModelBase
 
+UserSex = Literal["male", "female"]
+
 if typing.TYPE_CHECKING:
     from app.team.models import TeamMembership
-
-UserSex = Literal["Male", "Female"]
 
 
 class User(ModelBase):

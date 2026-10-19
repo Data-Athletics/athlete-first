@@ -16,7 +16,7 @@ class AppSettings(BaseSettings):
     debug: bool = False
     enable_swagger_persistent_auth: bool = True
     api_prefix: str = "/api/v1"
-    allow_origins: list[str] = ["*"]
+    allow_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
     allow_methods: list[str] = ["*"]
     allow_headers: list[str] = ["*"]
     expose_headers: list[str] = ["*"]
