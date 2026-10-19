@@ -1,7 +1,6 @@
 .PHONY: dev run build test prod clean
 
 build:
-	uv sync
 	docker compose build
 
 run:

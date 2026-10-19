@@ -1,9 +1,10 @@
+import enum
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any, ClassVar
 
-from sqlalchemy import URL, DateTime, Integer, NullPool, func
+from sqlalchemy import URL, DateTime, Enum, Integer, NullPool, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -73,7 +74,7 @@ class PostgresClient:
 
 
 # ----------------------------------------
-# Database Utilities
+# Connection Utilities
 # ----------------------------------------
 
 
@@ -130,6 +131,21 @@ async def get_db_session_context() -> AsyncGenerator[AsyncSession, None]:
         yield db
 
 
+# ----------------------------------------
+# Database Utilities & Abstractions
+# ----------------------------------------
+
+
+class DBErrors(enum.StrEnum):
+    """Types of PostgreSQL errors that could be returned in a db exception
+
+    Ref: https://www.postgresql.org/docs/8.1/errcodes-appendix.html
+    """
+
+    UNIQUE_VIOLATION = "23505"
+    FOREIGN_KEY_VIOLATION = "23503"
+
+
 class ModelBase(DeclarativeBase):
     """Base class for SQLAlchemy models."""
 
@@ -149,3 +165,12 @@ class ModelBase(DeclarativeBase):
     def __tablename__(cls):
         # Auto generate the table name based on the class name and custom prefix
         return f"af_{cls.__name__.lower()}"
+
+
+class ValuesEnum(Enum):
+    """Extends SQLAlchemy's `Enum` type to generate the SQL type from enum values"""
+
+    def __init__(self, *enums: type[enum.Enum], **kw: Any) -> None:
+        super().__init__(
+            *enums, values_callable=lambda obj: [e.value for e in obj], **kw
+        )

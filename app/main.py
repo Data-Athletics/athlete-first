@@ -11,6 +11,7 @@ from app.core.config import app_settings
 from app.core.database import ModelBase, get_engine
 from app.core.dtos import SimpleResponseDTO
 from app.observability import router as observability_router
+from app.team.router import router as team_router
 from app.user.router import router as user_router
 
 
@@ -55,6 +56,7 @@ router.include_router(
 router.include_router(user_router, prefix="/user", tags=["User"])
 router.include_router(biometrics_router, prefix="/biometrics", tags=["Biometrics"])
 router.include_router(auth_router, prefix="/auth", tags=["Authentication"])
+router.include_router(team_router, prefix="/team", tags=["Team"])
 
 
 @app.exception_handler(Exception)
