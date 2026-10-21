@@ -19,6 +19,7 @@ class UserDTO(BaseModelDTO, BaseUserDTO):
 
     id: int = Field(description="Primary key")
     can_login: bool = Field(description="Whether they have a usable password or not")
+    is_staff: bool = Field(description="Whether a user is a staff member or not")
     is_active: bool = Field(
         description=(
             "Determines whether the user can login, and whether their metrics "
@@ -40,31 +41,23 @@ class CreateUserDTO(SetPasswordMixin, BaseUserDTO):
     pass
 
 
-class UpdateUserDTO(BaseUserDTO):
-    """Fields available to update for a user"""
+class UpdateUserBaseDTO(BaseUserDTO):
+    """Base fields available to update for a user"""
 
     username: str | None = Field(default=None)
-
     height: float | None = Field(default=None, gt=0)
-
     weight: float | None = Field(default=None, gt=0)
-
     sex: UserSex | None = Field(default=None)
-
     age: int | None = Field(default=None, gt=0)
+
+
+class UpdateUserDTO(UpdateUserBaseDTO):
+    """Fields available to update for a user"""
 
     is_active: bool | None = Field(default=None)
 
 
-class UpdateMeDTO(SetPasswordMixin, BaseUserDTO):
+class UpdateMeDTO(SetPasswordMixin, UpdateUserBaseDTO):
     """Fields a user can update themselves"""
 
-    username: str | None = Field(default=None)
-
-    height: float | None = Field(default=None, gt=0)
-
-    weight: float | None = Field(default=None, gt=0)
-
-    sex: UserSex | None = Field(default=None)
-
-    age: int | None = Field(default=None, gt=0)
+    pass

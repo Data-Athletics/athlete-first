@@ -7,13 +7,6 @@
   margin-right: 30px;
 }
 
-.title-container {
-  display: flex;
-  flex-direction: row;
-  width: 100%;
-  align-items: center;
-}
-
 .metrics-container {
   display: flex;
   flex-direction: row;

@@ -87,3 +87,10 @@ input {
   box-sizing: border-box;
   margin: 23px 76px 23px 76px;
 }
+
+.title-container {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  align-items: center;
+}

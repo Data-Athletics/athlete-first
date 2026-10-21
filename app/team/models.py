@@ -14,6 +14,14 @@ class TeamRoleType(StrEnum):
     ATHLETE = "athlete"
 
 
+class TeamMembershipStatusType(StrEnum):
+    """The different consent statuses a user can have for a team membership"""
+
+    APPROVE = "approve"
+    REJECT = "reject"
+    PENDING = "pending"
+
+
 class Team(ModelBase):
     """Represents an athletic team with coaches and athletes"""
 
@@ -34,6 +42,9 @@ class TeamMembership(ModelBase):
 
     role: Mapped[TeamRoleType] = mapped_column(
         ValuesEnum(TeamRoleType), default=TeamRoleType.ATHLETE
+    )
+    status: Mapped[TeamMembershipStatusType] = mapped_column(
+        ValuesEnum(TeamMembershipStatusType), default=TeamMembershipStatusType.PENDING
     )
 
     # Relationships

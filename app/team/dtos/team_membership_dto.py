@@ -1,7 +1,7 @@
 from pydantic import Field
 
 from app.core.dtos import BaseDTO, BaseModelDTO
-from app.team.models import TeamRoleType
+from app.team.models import TeamMembershipStatusType, TeamRoleType
 
 
 class BaseTeamMembershipDTO(BaseDTO):
@@ -18,6 +18,7 @@ class TeamMembershipDTO(BaseTeamMembershipDTO, BaseModelDTO):
 
     user_id: int = Field(description="User associated with the membership")
     team_id: int = Field(description="Team associated with the membership")
+    status: TeamMembershipStatusType = Field(description="Status of membership consent")
 
 
 class CreateTeamMembershipDTO(BaseTeamMembershipDTO):
@@ -30,3 +31,4 @@ class UpdateTeamMembershipDTO(BaseTeamMembershipDTO):
     """Fields on a team membership that can be updated"""
 
     role: TeamRoleType | None = Field(default=None)
+    status: TeamMembershipStatusType | None = Field(default=None)

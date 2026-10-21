@@ -2,6 +2,8 @@ import type React from "react";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MetricSquare from "../components/MetricSquare";
+import SelectMembership from "../components/SelectMembership";
+import SelectTeam from "../components/SelectTeam";
 import { useBiometrics } from "../contexts/biometrics/BiometricsContext";
 import { useUser } from "../contexts/user/UserContext";
 import Nav from "../Nav";
@@ -11,7 +13,7 @@ import "./Dashboard.css";
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useUser();
-  const { uploadCsv, skinTempDelta, bpmGraph } = useBiometrics();
+  const { uploadCsv, skinTempDelta, bpmGraph, getMetrics } = useBiometrics();
   const navigate = useNavigate();
 
   const [uploading, setUploading] = useState(false);
@@ -35,6 +37,7 @@ const Dashboard: React.FC = () => {
       }
 
       const response = await uploadCsv(file, user?.id);
+      getMetrics(user.id);
       alertUser(response.detail);
     } catch (error) {
       alertUser(error instanceof Error ? error.message : String(error));
@@ -46,8 +49,9 @@ const Dashboard: React.FC = () => {
     <>
       <Nav>
         <div className="nav-button-container">
-          <button>Player A</button>
-          <button>Team A</button>
+          {user?.is_staff && <SelectMembership />}
+          <SelectTeam />
+          <button onClick={() => navigate("/requests")}>Requests</button>
           <button onClick={() => navigate("/profile")}>Profile</button>
           <button onClick={logout}>Log out</button>
         </div>

@@ -49,6 +49,7 @@ const Profile: React.FC = () => {
       <Nav>
         <div className="nav-button-container">
           <button onClick={() => navigate("/dashboard")}>Dashboard</button>
+          <button onClick={() => navigate("/requests")}>Requests</button>
           <button onClick={logout}>Log out</button>
         </div>
       </Nav>

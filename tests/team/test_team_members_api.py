@@ -4,7 +4,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.team.models import Team, TeamMembership, TeamRoleType
+from app.team.models import Team, TeamMembership, TeamMembershipStatusType, TeamRoleType
 from app.user.models import User
 from tests.team.utils import create_test_team
 from tests.user.utils import create_test_user, create_test_users
@@ -143,6 +143,25 @@ async def test_update_team_membership(
 
     await db.refresh(membership)
     assert membership.role == TeamRoleType.COACH
+
+    # Update Status
+    payload = {"status": TeamMembershipStatusType.REJECT}
+    res = await admin_client.patch(
+        f"/team/teams/{team.id}/memberships/{membership.id}", json=payload
+    )
+    assert res.status_code == 200
+
+    await db.refresh(membership)
+    assert membership.status == TeamMembershipStatusType.REJECT
+
+    payload = {"status": TeamMembershipStatusType.APPROVE}
+    res = await admin_client.patch(
+        f"/team/teams/{team.id}/memberships/{membership.id}", json=payload
+    )
+    assert res.status_code == 200
+
+    await db.refresh(membership)
+    assert membership.status == TeamMembershipStatusType.APPROVE
 
     # Try to update user id
     other_user = await create_test_user(db)

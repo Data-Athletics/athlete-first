@@ -22,6 +22,7 @@ export interface User extends Omit<UserSignUp, "password"> {
   id: number;
   can_login: boolean;
   is_active: boolean;
+  is_staff: boolean;
 }
 
 export interface UserUpdate extends Partial<Omit<User, "id" | "can_login">> {}
