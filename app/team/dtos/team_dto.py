@@ -1,6 +1,7 @@
 from pydantic import Field
 
 from app.core.dtos import BaseDTO, BaseModelDTO
+from app.team.dtos.team_membership_dto import TeamMembershipDTO
 
 
 class BaseTeamDTO(BaseDTO):
@@ -13,6 +14,12 @@ class TeamDTO(BaseTeamDTO, BaseModelDTO):
     """Information for an existing team"""
 
     pass
+
+
+class MyTeamDTO(TeamDTO):
+    """A team and the current user's membership in that team"""
+
+    membership: TeamMembershipDTO
 
 
 class CreateTeamDTO(BaseTeamDTO):

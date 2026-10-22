@@ -64,7 +64,7 @@ const Home: React.FC = () => {
           </div>
           <h3 className="input-title">Username</h3>
           <input
-            className="login-input"
+            className="text-input"
             type="text"
             placeholder="Usernane"
             value={username}
@@ -73,7 +73,7 @@ const Home: React.FC = () => {
           />
           <h3 className="input-title">Password</h3>
           <input
-            className="login-input"
+            className="text-input"
             type="password"
             placeholder="Password"
             value={password}
@@ -84,7 +84,7 @@ const Home: React.FC = () => {
             <>
               <h3 className="input-title">Height</h3>
               <input
-                className="login-input"
+                className="text-input"
                 type="text"
                 placeholder="Height"
                 value={height}
@@ -93,7 +93,7 @@ const Home: React.FC = () => {
               />
               <h3 className="input-title">Weight</h3>
               <input
-                className="login-input"
+                className="text-input"
                 type="text"
                 placeholder="Weight"
                 value={weight}
@@ -102,7 +102,7 @@ const Home: React.FC = () => {
               />
               <h3 className="input-title">Sex</h3>
               <input
-                className="login-input"
+                className="text-input"
                 type="text"
                 placeholder="Sex"
                 value={sex}
@@ -111,7 +111,7 @@ const Home: React.FC = () => {
               />
               <h3 className="input-title">Age</h3>
               <input
-                className="login-input"
+                className="text-input"
                 type="text"
                 placeholder="Age"
                 value={age}

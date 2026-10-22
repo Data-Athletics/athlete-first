@@ -60,7 +60,7 @@ const Profile: React.FC = () => {
         <div className="fields-container">
           <h3 className="input-title">Height</h3>
           <input
-            className="login-input"
+            className="text-input"
             type="number"
             placeholder="Height"
             value={height}
@@ -69,7 +69,7 @@ const Profile: React.FC = () => {
           />
           <h3 className="input-title">Weight</h3>
           <input
-            className="login-input"
+            className="text-input"
             type="number"
             placeholder="Weight"
             value={weight}
@@ -78,7 +78,7 @@ const Profile: React.FC = () => {
           />
           <h3 className="input-title">Sex</h3>
           <input
-            className="login-input"
+            className="text-input"
             type="text"
             placeholder="Sex"
             value={sex}
@@ -87,7 +87,7 @@ const Profile: React.FC = () => {
           />
           <h3 className="input-title">Age</h3>
           <input
-            className="login-input"
+            className="text-input"
             type="number"
             placeholder="Age"
             value={age}

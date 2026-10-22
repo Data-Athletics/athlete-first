@@ -21,10 +21,23 @@ class TeamMembershipDTO(BaseTeamMembershipDTO, BaseModelDTO):
     status: TeamMembershipStatusType = Field(description="Status of membership consent")
 
 
+class TeamMembershipRequestDTO(TeamMembershipDTO):
+    """A membership request with the user and team display names"""
+
+    username: str
+    team_name: str
+
+
 class CreateTeamMembershipDTO(BaseTeamMembershipDTO):
     """Fields needed to create a team membership"""
 
     user_id: int
+
+
+class CreateTeamMembershipRequestDTO(BaseTeamMembershipDTO):
+    """Fields needed to request a team membership"""
+
+    username: str
 
 
 class UpdateTeamMembershipDTO(BaseTeamMembershipDTO):

@@ -1,23 +1,49 @@
 import type React from "react";
 import { useRef, useState } from "react";
+import type { SingleValue } from "react-select";
 import { useNavigate } from "react-router-dom";
 import MetricSquare from "../components/MetricSquare";
-import SelectMembership from "../components/SelectMembership";
-import SelectTeam from "../components/SelectTeam";
+import SelectInput from "../components/SelectInput";
 import { useBiometrics } from "../contexts/biometrics/BiometricsContext";
+import { useTeam } from "../contexts/team/TeamContext";
 import { useUser } from "../contexts/user/UserContext";
 import Nav from "../Nav";
 import type { GraphData } from "../types/Biometrics";
+import type { Option } from "../types/Team";
 import { alertUser } from "../utils/alerts";
 import "./Dashboard.css";
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useUser();
   const { uploadCsv, skinTempDelta, bpmGraph, getMetrics } = useBiometrics();
+  const {
+    teams,
+    teamsOptions,
+    team,
+    setTeam,
+    approvedTeamMemberships,
+    approvedTeamMembershipsOptions,
+    teamMembership,
+    setTeamMembership,
+  } = useTeam();
   const navigate = useNavigate();
 
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleTeamChange = (option: SingleValue<Option>) => {
+    setTeam(
+      teams.find((candidate) => candidate.id === Number(option?.value)) ?? null,
+    );
+  };
+
+  const handleMembershipChange = (option: SingleValue<Option>) => {
+    setTeamMembership(
+      approvedTeamMemberships.find(
+        (membership) => membership.id === Number(option?.value),
+      ) ?? null,
+    );
+  };
 
   const handleUploadChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setUploading(true);
@@ -49,8 +75,36 @@ const Dashboard: React.FC = () => {
     <>
       <Nav>
         <div className="nav-button-container">
-          {user?.is_staff && <SelectMembership />}
-          <SelectTeam />
+          {user?.is_staff && (
+            <SelectInput
+              options={approvedTeamMembershipsOptions}
+              value={
+                teamMembership
+                  ? {
+                      value: String(teamMembership.id),
+                      label: String(teamMembership.user_id),
+                    }
+                  : null
+              }
+              onChange={handleMembershipChange}
+              placeholder="Select player..."
+            />
+          )}
+          {user?.is_staff && (
+            <SelectInput
+              options={teamsOptions}
+              value={
+                team
+                  ? {
+                      value: String(team.id),
+                      label: team.name,
+                    }
+                  : null
+              }
+              onChange={handleTeamChange}
+              placeholder="Select team..."
+            />
+          )}
           <button onClick={() => navigate("/requests")}>Requests</button>
           <button onClick={() => navigate("/profile")}>Profile</button>
           <button onClick={logout}>Log out</button>

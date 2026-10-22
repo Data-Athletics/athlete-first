@@ -8,23 +8,50 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import DBErrors
 from app.core.dependencies import AsyncSessionDep
-from app.team.dtos.team_dto import CreateTeamDTO, UpdateTeamDTO
+from app.team.dtos.team_dto import CreateTeamDTO, MyTeamDTO, UpdateTeamDTO
 from app.team.dtos.team_membership_dto import (
     CreateTeamMembershipDTO,
+    CreateTeamMembershipRequestDTO,
+    TeamMembershipRequestDTO,
     UpdateTeamMembershipDTO,
 )
-from app.team.models import Team, TeamMembership
+from app.team.models import Team, TeamMembership, TeamMembershipStatusType
+from app.user.models import User
 
 # -------------------------------
 # Teams CRUD
 # -------------------------------
 
 
-async def list_teams(db: AsyncSession):
+async def list_teams(db: AsyncSession) -> list[Team]:
     """Get a list of all teams"""
 
     rows = await db.execute(select(Team).order_by(desc(Team.id)))
-    return rows.scalars()
+    return list(rows.scalars())
+
+
+async def get_my_teams(db: AsyncSession, user: User) -> list[MyTeamDTO]:
+    """Get all teams and memberships for the current user."""
+
+    rows = await db.execute(
+        select(Team, TeamMembership)
+        .join(TeamMembership, TeamMembership.team_id == Team.id)
+        .where(TeamMembership.user_id == user.id)
+        .order_by(desc(Team.id))
+    )
+
+    return [
+        MyTeamDTO.model_validate(
+            {
+                "id": team.id,
+                "created_at": team.created_at,
+                "updated_at": team.updated_at,
+                "name": team.name,
+                "membership": membership,
+            }
+        )
+        for team, membership in rows.all()
+    ]
 
 
 async def get_team_by_id(db: AsyncSessionDep, team_id: Annotated[int, Path()]) -> Team:
@@ -61,7 +88,9 @@ async def create_team(db: AsyncSession, body: CreateTeamDTO):
 
     # Add users to the team
     for id in user_ids:
-        mem = TeamMembership(user_id=id, team_id=team.id)
+        mem = TeamMembership(
+            user_id=id, team_id=team.id, status=TeamMembershipStatusType.APPROVE
+        )
         db.add(mem)
 
     if user_ids:
@@ -106,7 +135,7 @@ async def delete_team(db: AsyncSession, team: Team):
 # -------------------------------
 
 
-async def list_team_memberships(db: AsyncSession, team: Team):
+async def list_team_memberships(db: AsyncSession, team: Team) -> list[TeamMembership]:
     """List team memberships for a team"""
 
     rows = await db.execute(
@@ -114,7 +143,40 @@ async def list_team_memberships(db: AsyncSession, team: Team):
         .where(TeamMembership.team_id == team.id)
         .order_by(desc(TeamMembership.id))
     )
-    return rows.scalars()
+    return list(rows.scalars())
+
+
+async def list_non_approved_team_memberships(
+    db: AsyncSession, team: Team
+) -> list[TeamMembershipRequestDTO]:
+    """List all non-approved memberships for a team."""
+
+    rows = await db.execute(
+        select(TeamMembership, User.username)
+        .join(User, User.id == TeamMembership.user_id)
+        .where(
+            TeamMembership.team_id == team.id,
+            TeamMembership.status != TeamMembershipStatusType.APPROVE,
+        )
+        .order_by(desc(TeamMembership.id))
+    )
+
+    return [
+        TeamMembershipRequestDTO.model_validate(
+            {
+                "id": membership.id,
+                "created_at": membership.created_at,
+                "updated_at": membership.updated_at,
+                "role": membership.role,
+                "user_id": membership.user_id,
+                "team_id": membership.team_id,
+                "status": membership.status,
+                "username": username,
+                "team_name": team.name,
+            }
+        )
+        for membership, username in rows.all()
+    ]
 
 
 async def get_team_membership_by_id(
@@ -143,12 +205,17 @@ async def get_team_membership_by_id(
     return membership
 
 
-async def create_team_membership(
-    db: AsyncSession, team: Team, body: CreateTeamMembershipDTO
+async def _create_team_membership(
+    db: AsyncSession,
+    team: Team,
+    user_id: int,
+    membership_status: TeamMembershipStatusType,
 ):
-    """Create team membership"""
+    """Create a team membership with an explicit status"""
 
-    membership = TeamMembership(**body.model_dump(), team_id=team.id)
+    membership = TeamMembership(
+        user_id=user_id, team_id=team.id, status=membership_status
+    )
     db.add(membership)
 
     try:
@@ -169,7 +236,7 @@ async def create_team_membership(
                 errors=[
                     {
                         "loc": ["body", "user_id"],
-                        "msg": f"No user exists with id {body.user_id}",
+                        "msg": f"No user exists with id {user_id}",
                         "type": "value_error",
                     }
                 ]
@@ -178,6 +245,35 @@ async def create_team_membership(
         raise e
 
     return membership
+
+
+async def create_team_membership(
+    db: AsyncSession, team: Team, body: CreateTeamMembershipDTO
+):
+    """Create an approved team membership"""
+
+    return await _create_team_membership(
+        db, team, body.user_id, TeamMembershipStatusType.APPROVE
+    )
+
+
+async def create_team_membership_request(
+    db: AsyncSession, team: Team, body: CreateTeamMembershipRequestDTO
+):
+    """Create a pending team membership request"""
+
+    rows = await db.execute(select(User).where(User.username == body.username))
+    user = rows.scalar_one_or_none()
+
+    if user is None:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            detail=f"User not found for username {body.username}",
+        )
+
+    return await _create_team_membership(
+        db, team, user.id, TeamMembershipStatusType.PENDING
+    )
 
 
 async def update_team_membership(
