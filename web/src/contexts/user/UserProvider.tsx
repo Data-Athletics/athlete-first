@@ -37,38 +37,44 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const login = async (userLogin: UserLogin) => {
     setLoading(true);
-    const { data } = await api.post<UserLoginResponse>(
-      "/auth/token",
-      new URLSearchParams({
-        username: userLogin.username,
-        password: userLogin.password,
-      }),
-    );
-    localStorage.setItem(TOKEN_KEY, data.access_token);
-    await getMe();
-    setLoading(false);
+    try {
+      const { data } = await api.post<UserLoginResponse>(
+        "/auth/token",
+        new URLSearchParams({
+          username: userLogin.username,
+          password: userLogin.password,
+        }),
+      );
+      localStorage.setItem(TOKEN_KEY, data.access_token);
+      await getMe();
+    } finally {
+      setLoading(false);
+    }
   };
 
   const signup = async (userSignUp: UserSignUp) => {
     setLoading(true);
-    const { data: signup_data } = await api.post<User>("auth/register", {
-      username: userSignUp.username,
-      name: userSignUp.name,
-      password: userSignUp.password,
-    });
-    await login({
-      username: signup_data.username,
-      password: userSignUp.password,
-    });
-    const user_data = await updateMe({
-      name: userSignUp.name,
-      height: userSignUp.height,
-      weight: userSignUp.weight,
-      age: userSignUp.age,
-      sex: userSignUp.sex,
-    });
-    setUser(user_data);
-    setLoading(false);
+    try {
+      const { data: signup_data } = await api.post<User>("auth/register", {
+        username: userSignUp.username,
+        name: userSignUp.name,
+        password: userSignUp.password,
+      });
+      await login({
+        username: signup_data.username,
+        password: userSignUp.password,
+      });
+      const user_data = await updateMe({
+        name: userSignUp.name,
+        height: userSignUp.height,
+        weight: userSignUp.weight,
+        age: userSignUp.age,
+        sex: userSignUp.sex,
+      });
+      setUser(user_data);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const updateMe = async (updateUser: UserUpdate): Promise<User> => {

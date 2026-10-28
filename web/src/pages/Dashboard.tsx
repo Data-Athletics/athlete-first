@@ -1,5 +1,5 @@
 import type React from "react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { SingleValue } from "react-select";
 import { useNavigate } from "react-router-dom";
 import MetricSquare from "../components/MetricSquare";
@@ -15,8 +15,20 @@ import "./Dashboard.css";
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useUser();
-  const { uploadCsv, skinTempDelta, bpmGraph, getMetrics } = useBiometrics();
   const {
+    uploadCsv,
+    calories,
+    skinTempDelta,
+    hrv,
+    rhr,
+    respiratoryRate,
+    effort,
+    bpmGraph,
+    getMetrics,
+    clearMetrics,
+  } = useBiometrics();
+  const {
+    loading: teamLoading,
     teams,
     teamsOptions,
     team,
@@ -35,15 +47,30 @@ const Dashboard: React.FC = () => {
     setTeam(
       teams.find((candidate) => candidate.id === Number(option?.value)) ?? null,
     );
+    if (user?.is_staff) {
+      setTeamMembership(null);
+      clearMetrics();
+    }
   };
 
   const handleMembershipChange = (option: SingleValue<Option>) => {
-    setTeamMembership(
-      approvedTeamMemberships.find(
-        (membership) => membership.id === Number(option?.value),
-      ) ?? null,
+    if (!option || option.value === "all") {
+      setTeamMembership(null);
+      clearMetrics();
+      return;
+    }
+
+    const membership = approvedTeamMemberships.find(
+      (candidate) => candidate.id === Number(option.value),
     );
+    setTeamMembership(membership ?? null);
   };
+
+  useEffect(() => {
+    if (user?.is_staff && teamMembership) {
+      void getMetrics(teamMembership.user_id);
+    }
+  }, [teamMembership?.user_id, user?.is_staff]);
 
   const handleUploadChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setUploading(true);
@@ -62,14 +89,35 @@ const Dashboard: React.FC = () => {
         throw new Error("File chosen must be a CSV file.");
       }
 
-      const response = await uploadCsv(file, user?.id);
-      getMetrics(user.id);
+      const metricUserId = user.is_staff
+        ? teamMembership?.user_id
+        : user.id;
+      if (!metricUserId) {
+        throw new Error("Select a player before uploading biometrics.");
+      }
+
+      const response = await uploadCsv(file, metricUserId);
+      await getMetrics(metricUserId);
       alertUser(response.detail);
     } catch (error) {
       alertUser(error instanceof Error ? error.message : String(error));
     }
     setUploading(false);
   };
+
+  if (teamLoading) {
+    return (
+      <>
+        <Nav>
+          <div className="nav-button-container">
+            <button onClick={() => navigate("/team")}>Team</button>
+            <button onClick={() => navigate("/profile")}>Profile</button>
+            <button onClick={logout}>Log out</button>
+          </div>
+        </Nav>
+      </>
+    );
+  }
 
   return (
     <>
@@ -84,7 +132,7 @@ const Dashboard: React.FC = () => {
                       value: String(teamMembership.id),
                       label: teamMembership.name,
                     }
-                  : null
+                  : { value: "all", label: "All" }
               }
               onChange={handleMembershipChange}
               placeholder="Select player..."
@@ -113,51 +161,69 @@ const Dashboard: React.FC = () => {
       <div className="page-container">
         <div className="title-container">
           <h1 className="page-header">Metrics</h1>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv,text/csv"
-            style={{ display: "none" }}
-            onChange={handleUploadChange}
-          />
-          <button
-            style={{ marginLeft: "auto" }}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            {uploading ? "Uploading..." : "Upload"}
-          </button>
+          {!user?.is_staff && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                style={{ display: "none" }}
+                onChange={handleUploadChange}
+              />
+              <button
+                style={{ marginLeft: "auto" }}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {uploading ? "Uploading..." : "Upload"}
+              </button>
+            </>
+          )}
         </div>
         <div className="metrics-container">
-          <MetricSquare
-            type="text"
-            title="Skin Temperature Delta"
-            value={getValueRepresentation(skinTempDelta)}
-          />
-          <MetricSquare
-            type="text"
-            title="Skin Temperature Delta"
-            value={getValueRepresentation(skinTempDelta)}
-          />
-          <MetricSquare
-            type="text"
-            title="Skin Temperature Delta"
-            value={getValueRepresentation(skinTempDelta)}
-          />
-          <MetricSquare
-            type="graph"
-            title="Beats Per Minute"
-            data={getGraphRepresentation(bpmGraph)}
-          />
-          <MetricSquare
-            type="graph"
-            title="Beats Per Minute"
-            data={getGraphRepresentation(bpmGraph)}
-          />
-          <MetricSquare
-            type="graph"
-            title="Beats Per Minute"
-            data={getGraphRepresentation(bpmGraph)}
-          />
+            {user?.is_staff && !teamMembership ? (
+              <div className="aggregate-metrics-placeholder">
+                <h2>Team Aggregated Metrics</h2>
+                <p>Coming soon</p>
+              </div>
+            ) : (
+              <>
+                <MetricSquare
+                  type="text"
+                  title="Calories"
+                  value={getValueRepresentation(calories)}
+                />
+                <MetricSquare
+                  type="text"
+                  title="Skin Temperature Delta"
+                  value={getValueRepresentation(skinTempDelta)}
+                />
+                <MetricSquare
+                  type="text"
+                  title="HRV"
+                  value={getValueRepresentation(hrv)}
+                />
+                <MetricSquare
+                  type="text"
+                  title="RHR"
+                  value={getValueRepresentation(rhr)}
+                />
+                <MetricSquare
+                  type="text"
+                  title="Respiratory Rate"
+                  value={getValueRepresentation(respiratoryRate)}
+                />
+                <MetricSquare
+                  type="text"
+                  title="Effort"
+                  value={getValueRepresentation(effort)}
+                />
+                <MetricSquare
+                  type="graph"
+                  title="Beats Per Minute"
+                  data={getGraphRepresentation(bpmGraph)}
+                />
+              </>
+            )}
         </div>
       </div>
     </>
@@ -167,7 +233,23 @@ const Dashboard: React.FC = () => {
 export default Dashboard;
 
 const getValueRepresentation = (value: number | null) => {
-  return value ? String(value) : "...";
+  if (value === null) return "...";
+  if (Math.abs(value) < 1000) {
+    const rounded = value.toFixed(1);
+    return rounded.length <= 4 ? rounded : String(Math.round(value));
+  }
+
+  const compact = new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 1,
+    notation: "compact",
+  }).format(value);
+
+  return compact.length <= 4
+    ? compact
+    : new Intl.NumberFormat("en-US", {
+        maximumFractionDigits: 0,
+        notation: "compact",
+      }).format(value);
 };
 
 const getGraphRepresentation = (graph: GraphData | null) => {

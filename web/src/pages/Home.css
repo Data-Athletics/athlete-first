@@ -39,6 +39,16 @@
   margin-top: auto;
 }
 
+.login-submit {
+  width: 180px;
+  max-width: 100%;
+  margin-top: 20px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .home-catch {
   font-weight: 900;
 }

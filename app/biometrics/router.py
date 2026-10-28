@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from app.auth.dependencies import get_current_user
 from app.biometrics.decoder import decode_noop_csv
 from app.biometrics.dtos.AggregationsDTOs import (
+    BiometricsUploadResponseDTO,
     CaloriesResponseDTO,
     EffortStrainResponseDTO,
     GraphResponseDTO,
@@ -26,13 +27,14 @@ from app.biometrics.services import (
     skin_temp_delta,
 )
 from app.core.dependencies import AsyncSessionDep
-from app.core.dtos import SimpleResponseDTO
 from app.user.dependencies import UserByIdDep
 
 biometrics_router = APIRouter(dependencies=[Depends(get_current_user)])
 
 
-@biometrics_router.post("/{user_id}", response_model=SimpleResponseDTO, status_code=201)
+@biometrics_router.post(
+    "/{user_id}", response_model=BiometricsUploadResponseDTO, status_code=201
+)
 async def create_biometrics_route(
     db: AsyncSessionDep, user: UserByIdDep, file: UploadFile = File(...)
 ):
@@ -47,7 +49,14 @@ async def create_biometrics_route(
     noop_data = decode_noop_csv(file.file)
 
     try:
-        await bulk_upload_noop_data(db, user.id, noop_data)
+        inserted, duplicates = await bulk_upload_noop_data(db, user.id, noop_data)
+
+        return BiometricsUploadResponseDTO(
+            detail="Noop data uploaded",
+            code=201,
+            inserted=inserted,
+            duplicates=duplicates,
+        )
     except sqlalchemy.exc.NoReferencedTableError as e:
         if "user_id" in str(e):
             raise HTTPException(
@@ -55,14 +64,12 @@ async def create_biometrics_route(
                 detail="User id does not exist to upload data to.",
             )
 
-    return SimpleResponseDTO(detail="Noop data uploaded", code=201)
-
 
 @biometrics_router.get("/{user_id}/hrv", response_model=HRVResponseDTO)
 async def get_hrv_from_end_time(
     db: AsyncSessionDep, user: UserByIdDep, end_time: datetime
 ):
-    """Get a user's hrv value from the end_time to some past start time (current default 3 weeks)"""
+    """Get a user's HRV value over the previous two months."""
 
     hrv, start, end = await calculate_hrv(db, user.id, end_time)
 

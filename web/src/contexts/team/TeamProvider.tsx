@@ -16,6 +16,11 @@ import { TeamContext } from "./TeamContext";
 
 const ALL_OPTION = { value: "all", label: "All" };
 
+const selectedTeamStorageKey = (userId: number) =>
+  `selected-team-${userId}`;
+const selectedMembershipStorageKey = (userId: number) =>
+  `selected-membership-${userId}`;
+
 export function TeamProvider({ children }: { children: ReactNode }) {
   const { user } = useUser();
 
@@ -32,14 +37,46 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   const [teamMembershipRequests, setTeamMembershipRequests] = useState<
     TeamMembershipRequest[]
   >([]);
-  const [teamMembership, setTeamMembership] = useState<TeamMember | null>(
+  const [teamMembership, setTeamMembershipState] = useState<TeamMember | null>(
     null,
   );
   const [teams, setTeams] = useState<Team[]>([]);
   const [myTeams, setMyTeams] = useState<MyTeam[]>([]);
   const [teamsOptions, setTeamsOptions] = useState<Option[]>([]);
-  const [team, setTeam] = useState<Team | null>(null);
+  const [team, setTeamState] = useState<Team | null>(null);
+  const [loading, setLoading] = useState(true);
   const loadedUserId = useRef<number | null>(null);
+
+  const setTeam = (selectedTeam: Team | null) => {
+    setTeamState(selectedTeam);
+    if (!user) return;
+
+    if (selectedTeam) {
+      localStorage.setItem(
+        selectedTeamStorageKey(user.id),
+        String(selectedTeam.id),
+      );
+    } else {
+      localStorage.removeItem(selectedTeamStorageKey(user.id));
+    }
+
+    setTeamMembershipState(null);
+    localStorage.removeItem(selectedMembershipStorageKey(user.id));
+  };
+
+  const setTeamMembership = (membership: TeamMember | null) => {
+    setTeamMembershipState(membership);
+    if (!user) return;
+
+    if (membership) {
+      localStorage.setItem(
+        selectedMembershipStorageKey(user.id),
+        String(membership.id),
+      );
+    } else {
+      localStorage.removeItem(selectedMembershipStorageKey(user.id));
+    }
+  };
 
   const getTeamMemberships = async () => {
     if (team) {
@@ -49,15 +86,23 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       const athleteMemberships = data.filter(
         (membership) => membership.role === "athlete",
       );
-      setApprovedTeamMemberships(
-        athleteMemberships.filter(
-          (membership) => membership.status === "approve",
-        ),
+      const approvedMemberships = athleteMemberships.filter(
+        (membership) => membership.status === "approve",
       );
+      setApprovedTeamMemberships(approvedMemberships);
       setRequestedTeamMemberships(
         athleteMemberships.filter(
           (membership) => membership.status !== "approve",
         ),
+      );
+
+      const savedMembershipId = Number(
+        localStorage.getItem(selectedMembershipStorageKey(user?.id ?? 0)),
+      );
+      setTeamMembershipState(
+        approvedMemberships.find(
+          (membership) => membership.id === savedMembershipId,
+        ) ?? null,
       );
     } else {
       console.error("Cannot get memberships now because no team is selected");
@@ -150,13 +195,21 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   };
 
   const getTeams = async () => {
+    setLoading(true);
     const { data } = await api.get<MyTeamsResponse>("/team/teams/me");
     const approvedTeams = data
       .filter(({ membership }) => membership.status === "approve")
       .map(({ id, name }) => ({ id, name }));
     setMyTeams(data);
     setTeams(approvedTeams);
+    const savedTeamId = Number(
+      localStorage.getItem(selectedTeamStorageKey(user?.id ?? 0)),
+    );
+    const savedTeam =
+      approvedTeams.find((candidate) => candidate.id === savedTeamId) ?? null;
+    setTeamState(savedTeam);
     await loadTeamMembershipRequests(approvedTeams, data);
+    if (!savedTeam) setLoading(false);
   };
 
   const getTeamMembers = async (teamId: number): Promise<TeamMember[]> => {
@@ -183,7 +236,10 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     if (loadedUserId.current === user.id) return;
 
     loadedUserId.current = user.id;
-    void getTeams();
+    void getTeams().catch((error) => {
+      console.error("Failed to load teams:", error);
+      setLoading(false);
+    });
   }, [user?.id]);
 
   useEffect(() => {
@@ -204,6 +260,20 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   }, [approvedTeamMemberships]);
 
   useEffect(() => {
+    if (!user || !team) return;
+
+    const savedMembershipId = Number(
+      localStorage.getItem(selectedMembershipStorageKey(user.id)),
+    );
+    const savedMembership = approvedTeamMemberships.find(
+      (membership) =>
+        membership.id === savedMembershipId && membership.team_id === team.id,
+    );
+
+    setTeamMembershipState(savedMembership ?? null);
+  }, [approvedTeamMemberships, team?.id, user?.id]);
+
+  useEffect(() => {
     setRequestedTeamMembershipsOptions(
       requestedTeamMemberships
         .map((membership) => ({
@@ -216,14 +286,16 @@ export function TeamProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (team) {
-      getTeamMemberships();
+      void getTeamMemberships()
+        .catch((error) => console.error("Failed to load team memberships:", error))
+        .finally(() => setLoading(false));
     }
-    setTeamMembership(null);
   }, [team]);
 
   return (
     <TeamContext.Provider
       value={{
+        loading,
         teams,
         myTeams,
         teamsOptions,

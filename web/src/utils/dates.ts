@@ -1,3 +1,5 @@
 export const twoMonthsBack = (date: Date = new Date()) => {
-  return new Date(new Date(date).setMonth(new Date().getMonth() - 2));
+  const start = new Date(date);
+  start.setMonth(start.getMonth() - 2);
+  return start;
 };

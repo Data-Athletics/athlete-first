@@ -9,6 +9,7 @@ import type {
 } from "../../types/Team";
 
 export interface TeamContextType {
+  loading: boolean;
   teams: Team[];
   myTeams: MyTeam[];
   teamsOptions: Option[];

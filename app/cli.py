@@ -52,6 +52,20 @@ async def init():
         await conn.execute(
             text("ALTER TABLE af_user ADD COLUMN IF NOT EXISTS name VARCHAR NOT NULL")
         )
+        for table in (
+            "af_heartrate",
+            "af_rrinterval",
+            "af_gravity",
+            "af_bloodoxygenraw",
+            "af_skintemperatureraw",
+            "af_respirationraw",
+        ):
+            await conn.execute(
+                text(
+                    f"CREATE UNIQUE INDEX IF NOT EXISTS "
+                    f"uq_{table}_user_timestamp ON {table} (user_id, timestamp)"
+                )
+            )
 
 
 @app.command()
@@ -145,11 +159,14 @@ async def upload_biometrics(
         with file.open("rb") as csv_file:
             noop_data = decode_noop_csv(csv_file)
 
-        await bulk_upload_noop_data(db, user_id, noop_data)
+        inserted, duplicates = await bulk_upload_noop_data(db, user_id, noop_data)
 
         await db.commit()
 
-    print(f"Uploaded biometrics: <User id={user_id} file='{file}'>")
+    print(
+        f"Uploaded biometrics: <User id={user_id} file='{file}' "
+        f"inserted={inserted} duplicates={duplicates}>"
+    )
 
 
 @app.command()

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../contexts/user/UserContext";
 import Nav from "../Nav";
+import { alertUser } from "../utils/alerts";
 import "./Home.css";
 
 const Home: React.FC = () => {
@@ -40,7 +41,12 @@ const Home: React.FC = () => {
       }
       navigate("/dashboard");
     } catch (error) {
-      console.log(error);
+      console.error(error);
+      alertUser(
+        signingUp
+          ? "You could not be signed up. Please check your information."
+          : "You could not be logged in. Please check your username and password.",
+      );
     }
   };
 
@@ -131,7 +137,11 @@ const Home: React.FC = () => {
               />
             </>
           )}
-          <button disabled={loading} className="login-button" onClick={onGoClick}>
+          <button
+            disabled={loading}
+            className="login-button login-submit"
+            onClick={onGoClick}
+          >
             {loading ? (signingUp ? "Signing up..." : "Logging in...") : "Go"}
           </button>
         </div>
