@@ -16,6 +16,7 @@ class User(ModelBase):
     """Application user."""
 
     username: Mapped[str] = mapped_column(unique=True)
+    name: Mapped[str] = mapped_column(nullable=False)
     hashed_password: Mapped[Optional[str]] = mapped_column(default=None, nullable=True)
     is_active: Mapped[bool] = mapped_column(default=True)
     is_admin: Mapped[bool] = mapped_column(default=False)

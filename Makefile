@@ -14,10 +14,10 @@ seed:
 	docker compose run --rm athlete-first sh -c "\
 		bash /scripts/wait-for-db.sh && \
 		uv run python app/cli.py init && \
-		uv run python app/cli.py create-user --username player@email.com --password changeme --height 71 --weight 138 --sex male --age 21 && \
-		uv run python app/cli.py create-user --username player2@email.com --password changeme --height 68 --weight 150 --sex female --age 22 && \
-		uv run python app/cli.py create-user --username player3@email.com --password changeme --height 70 --weight 160 --sex male --age 23 && \
-		uv run python app/cli.py create-user --username coach@email.com --password changeme --staff && \
+		uv run python app/cli.py create-user --username player@email.com --name 'First Player' --password changeme --height 71 --weight 138 --sex male --age 21 && \
+		uv run python app/cli.py create-user --username player2@email.com --name 'Second Player' --password changeme --height 68 --weight 150 --sex female --age 22 && \
+		uv run python app/cli.py create-user --username player3@email.com --name 'Third Player' --password changeme --height 70 --weight 160 --sex male --age 23 && \
+		uv run python app/cli.py create-user --username coach@email.com --name 'Coach' --password changeme --staff && \
 		uv run python app/cli.py create-team --name 'Team Alpha' && \
 		uv run python app/cli.py create-team --name 'Team Beta' && \
 		uv run python app/cli.py create-membership --user-id 1 --team-id 1 --role athlete --status approve && \

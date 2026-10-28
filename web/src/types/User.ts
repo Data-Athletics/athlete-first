@@ -12,6 +12,7 @@ export interface UserLoginResponse {
 }
 
 export interface UserSignUp extends UserLogin {
+  name: string;
   height: number | null;
   weight: number | null;
   sex: UserSex | null;

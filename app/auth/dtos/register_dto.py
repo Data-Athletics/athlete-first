@@ -7,4 +7,5 @@ class RegisterUserDTO(BaseDTO):
     """Fields needed for a new user to register themselves"""
 
     username: str = Field(min_length=5)
+    name: str = Field(min_length=1)
     password: SecretStr = Field(min_length=6)

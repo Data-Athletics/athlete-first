@@ -7,7 +7,7 @@ import { UserProvider } from "./contexts/user/UserProvider.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
 import Home from "./pages/Home.tsx";
 import Profile from "./pages/Profile.tsx";
-import Requests from "./pages/Requests.tsx";
+import TeamPage from "./pages/Team.tsx";
 import ProtectedRoute from "./ProtectedRoute.tsx";
 import "./styles/button.css";
 import "./styles/index.css";
@@ -42,8 +42,8 @@ const router = createBrowserRouter([
             element: <Dashboard />,
           },
           {
-            path: "/requests",
-            element: <Requests />,
+            path: "/team",
+            element: <TeamPage />,
           },
         ],
       },

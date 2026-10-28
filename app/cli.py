@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 
 from app.auth.services import get_password_hash
@@ -49,6 +49,9 @@ async def init():
 
     async with engine.begin() as conn:
         await conn.run_sync(ModelBase.metadata.create_all)
+        await conn.execute(
+            text("ALTER TABLE af_user ADD COLUMN IF NOT EXISTS name VARCHAR NOT NULL")
+        )
 
 
 @app.command()
@@ -56,6 +59,7 @@ async def init():
 async def create_user(
     username: Annotated[str, typer.Option(help="Username of the new user")],
     password: Annotated[str, typer.Option(help="Password of the new user")],
+    name: Annotated[str, typer.Option(help="Professional display name")],
     height: Annotated[float | None, typer.Option(help="Height in inches")] = None,
     weight: Annotated[float | None, typer.Option(help="Weight in pounds")] = None,
     sex: Annotated[
@@ -79,6 +83,7 @@ async def create_user(
 
         user = User(
             username=username,
+            name=name,
             hashed_password=hashed_password,
             height=height,
             weight=weight,
@@ -96,6 +101,7 @@ async def create_user(
             f"is_admin={user.is_admin} "
             f"is_staff={user.is_staff} "
             f"username='{user.username}' "
+            f"name='{user.name}' "
             f"height={user.height} "
             f"weight={user.weight} "
             f"sex={user.sex} "

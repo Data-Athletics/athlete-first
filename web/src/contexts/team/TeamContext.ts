@@ -2,20 +2,24 @@ import { createContext, useContext } from "react";
 import type {
   Option,
   Team,
-  TeamMembership,
+  TeamMember,
   TeamMembershipRequest,
   TeamMembershipStatus,
+  MyTeam,
 } from "../../types/Team";
 
 export interface TeamContextType {
   teams: Team[];
+  myTeams: MyTeam[];
   teamsOptions: Option[];
   getTeams: () => Promise<void>;
+  getTeamMembers: (teamId: number) => Promise<TeamMember[]>;
+  leaveTeam: (teamId: number, membershipId: number) => Promise<void>;
   team: Team | null;
   setTeam: (team: Team | null) => void;
-  approvedTeamMemberships: TeamMembership[];
+  approvedTeamMemberships: TeamMember[];
   approvedTeamMembershipsOptions: Option[];
-  requestedTeamMemberships: TeamMembership[];
+  requestedTeamMemberships: TeamMember[];
   requestedTeamMembershipsOptions: Option[];
   getTeamMemberships: () => Promise<void>;
   teamMembershipRequests: TeamMembershipRequest[];
@@ -30,8 +34,8 @@ export interface TeamContextType {
     status: TeamMembershipStatus,
   ) => Promise<void>;
   deleteTeamMembership: (teamId: number, membershipId: number) => Promise<void>;
-  teamMembership: TeamMembership | null;
-  setTeamMembership: (membership: TeamMembership | null) => void;
+  teamMembership: TeamMember | null;
+  setTeamMembership: (membership: TeamMember | null) => void;
 }
 
 export const TeamContext = createContext<TeamContextType | null>(null);

@@ -68,7 +68,11 @@ async def test_create_user(
     """Should create a new user"""
 
     # Create valid user
-    payload = {"username": fake.username(), "password": "changeme"}
+    payload = {
+        "username": fake.username(),
+        "name": "Created User",
+        "password": "changeme",
+    }
 
     # Unauthenticated request
     res = await client.post("/user/users", json=payload)
@@ -98,17 +102,25 @@ async def test_create_user_valid_password(db: AsyncSession, admin_client: AsyncC
     """Should only create a user if the password meets requirements"""
 
     # Allow password to be null
-    payload = {"username": fake.username()}
+    payload = {"username": fake.username(), "name": "Passwordless User"}
     res = await admin_client.post("/user/users", json=payload)
     assert res.status_code == 201
 
     # Prevent password from being too short
-    payload = {"username": fake.username(), "password": "12345"}
+    payload = {
+        "username": fake.username(),
+        "name": "Short Password User",
+        "password": "12345",
+    }
     res = await admin_client.post("/user/users", json=payload)
     assert res.status_code == 422
 
     # Valid password length
-    payload = {"username": fake.username(), "password": "123456"}
+    payload = {
+        "username": fake.username(),
+        "name": "Valid Password User",
+        "password": "123456",
+    }
     res = await admin_client.post("/user/users", json=payload)
     assert res.status_code == 201
 
@@ -122,7 +134,11 @@ async def test_update_user(
     initial_usernames = (str(users[0].username), str(users[1].username))
     initial_weights = (users[0].weight, users[1].weight)
 
-    payload1 = {"username": initial_usernames[0] + "-updated", "weight": 180.0}
+    payload1 = {
+        "username": initial_usernames[0] + "-updated",
+        "name": "Updated User",
+        "weight": 180.0,
+    }
 
     # Unauthenticated request
     res = await client.patch(f"/user/users/{users[0].id}", json=payload1)
@@ -141,6 +157,7 @@ async def test_update_user(
 
     await db.refresh(users[0])
     assert users[0].username == payload1["username"]
+    assert users[0].name == payload1["name"]
     assert users[0].weight == payload1["weight"]
     assert users[1].username == initial_usernames[1]
     assert users[1].weight == initial_weights[1]

@@ -1,13 +1,15 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api } from "../../api/axios";
 import {
   type Option,
   type Team,
+  type TeamMember,
   type TeamMembership,
   type TeamMembershipRequest,
   type TeamMembershipStatus,
-  type TeamMembershipsResponse,
+  type MyTeam,
   type MyTeamsResponse,
+  type TeamMembersResponse,
 } from "../../types/Team";
 import { useUser } from "../user/UserContext";
 import { TeamContext } from "./TeamContext";
@@ -18,28 +20,30 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   const { user } = useUser();
 
   const [approvedTeamMemberships, setApprovedTeamMemberships] = useState<
-    TeamMembership[]
+    TeamMember[]
   >([]);
   const [approvedTeamMembershipsOptions, setApprovedTeamMembershipsOptions] =
     useState<Option[]>([]);
   const [requestedTeamMemberships, setRequestedTeamMemberships] = useState<
-    TeamMembership[]
+    TeamMember[]
   >([]);
   const [requestedTeamMembershipsOptions, setRequestedTeamMembershipsOptions] =
     useState<Option[]>([]);
   const [teamMembershipRequests, setTeamMembershipRequests] = useState<
     TeamMembershipRequest[]
   >([]);
-  const [teamMembership, setTeamMembership] = useState<TeamMembership | null>(
+  const [teamMembership, setTeamMembership] = useState<TeamMember | null>(
     null,
   );
   const [teams, setTeams] = useState<Team[]>([]);
+  const [myTeams, setMyTeams] = useState<MyTeam[]>([]);
   const [teamsOptions, setTeamsOptions] = useState<Option[]>([]);
   const [team, setTeam] = useState<Team | null>(null);
+  const loadedUserId = useRef<number | null>(null);
 
   const getTeamMemberships = async () => {
     if (team) {
-      const { data } = await api.get<TeamMembershipsResponse>(
+      const { data } = await api.get<TeamMember[]>(
         `/team/teams/${team.id}/memberships`,
       );
       const athleteMemberships = data.filter(
@@ -70,9 +74,27 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     await getTeamMembershipRequests();
   };
 
-  const getTeamMembershipRequests = async () => {
+  const loadTeamMembershipRequests = async (
+    currentTeams: Team[],
+    currentMyTeams: MyTeam[],
+  ) => {
+    if (!user) return;
+
+    if (!user.is_staff) {
+      setTeamMembershipRequests(
+        currentMyTeams
+          .filter(({ membership }) => membership.status !== "approve")
+          .map(({ name, membership }) => ({
+            ...membership,
+            name: user.name,
+            team_name: name,
+          })),
+      );
+      return;
+    }
+
     const responses = await Promise.all(
-      teams.map(({ id }) =>
+      currentTeams.map(({ id }) =>
         api.get<TeamMembershipRequest[]>(
           `/team/teams/${id}/memberships/non-approved`,
         ),
@@ -81,34 +103,88 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     setTeamMembershipRequests(responses.flatMap(({ data }) => data));
   };
 
+  const getTeamMembershipRequests = async () => {
+    await loadTeamMembershipRequests(teams, myTeams);
+  };
+
   const updateTeamMembershipStatus = async (
     teamId: number,
     membershipId: number,
     status: TeamMembershipStatus,
   ) => {
-    await api.patch(`/team/teams/${teamId}/memberships/${membershipId}`, {
-      status,
-    });
-    await getTeamMembershipRequests();
+    const { data: updatedMembership } = await api.patch<TeamMembership>(
+      `/team/teams/${teamId}/memberships/${membershipId}`,
+      { status },
+    );
+
+    if (user?.is_staff) {
+      await getTeamMembershipRequests();
+      return;
+    }
+
+    const updatedTeams = myTeams.map((currentTeam) =>
+      currentTeam.membership.id === membershipId
+        ? { ...currentTeam, membership: updatedMembership }
+        : currentTeam,
+    );
+    setMyTeams(updatedTeams);
+    setTeams(
+      updatedTeams
+        .filter(({ membership }) => membership.status === "approve")
+        .map(({ id, name }) => ({ id, name })),
+    );
+    setTeamMembershipRequests((requests) =>
+      status === "approve"
+        ? requests.filter((request) => request.id !== membershipId)
+        : requests.map((request) =>
+            request.id === membershipId
+              ? { ...request, status: updatedMembership.status }
+              : request,
+          ),
+    );
   };
 
   const deleteTeamMembership = async (teamId: number, membershipId: number) => {
     await api.delete(`/team/teams/${teamId}/memberships/${membershipId}`);
-    await getTeamMembershipRequests();
+    await getTeams();
   };
 
   const getTeams = async () => {
     const { data } = await api.get<MyTeamsResponse>("/team/teams/me");
-    setTeams(data.map(({ id, name }) => ({ id, name })));
+    const approvedTeams = data
+      .filter(({ membership }) => membership.status === "approve")
+      .map(({ id, name }) => ({ id, name }));
+    setMyTeams(data);
+    setTeams(approvedTeams);
+    await loadTeamMembershipRequests(approvedTeams, data);
+  };
+
+  const getTeamMembers = async (teamId: number): Promise<TeamMember[]> => {
+    const { data } = await api.get<TeamMembersResponse>(
+      `/team/teams/${teamId}/memberships`,
+    );
+    return data;
+  };
+
+  const leaveTeam = async (teamId: number, membershipId: number) => {
+    await api.delete(`/team/teams/${teamId}/memberships/${membershipId}`);
+    if (team?.id === teamId) {
+      setTeam(null);
+    }
+    await getTeams();
   };
 
   useEffect(() => {
-    getTeams();
-  }, [user]);
+    if (!user) {
+      loadedUserId.current = null;
+      return;
+    }
 
-  useEffect(() => {
-    getTeamMembershipRequests();
-  }, [teams]);
+    if (loadedUserId.current === user.id) return;
+
+    loadedUserId.current = user.id;
+    void getTeams();
+  }, [user?.id]);
 
   useEffect(() => {
     setTeamsOptions(
@@ -121,7 +197,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       approvedTeamMemberships
         .map((membership) => ({
           value: String(membership.id),
-          label: String(membership.user_id),
+          label: membership.name,
         }))
         .concat(ALL_OPTION),
     );
@@ -132,7 +208,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       requestedTeamMemberships
         .map((membership) => ({
           value: String(membership.id),
-          label: String(membership.user_id),
+          label: membership.name,
         }))
         .concat(ALL_OPTION),
     );
@@ -149,8 +225,11 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     <TeamContext.Provider
       value={{
         teams,
+        myTeams,
         teamsOptions,
         getTeams,
+        getTeamMembers,
+        leaveTeam,
         team,
         setTeam,
         approvedTeamMemberships,

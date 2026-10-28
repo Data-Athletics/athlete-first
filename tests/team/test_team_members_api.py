@@ -160,7 +160,7 @@ async def test_list_non_approved_team_memberships(
     data = res.json()
     assert len(data) == 1
     assert data[0]["id"] == membership_id
-    assert data[0]["username"] == user.username
+    assert data[0]["name"] == user.name
     assert data[0]["team_name"] == team.name
     assert data[0]["status"] == TeamMembershipStatusType.REJECT
 

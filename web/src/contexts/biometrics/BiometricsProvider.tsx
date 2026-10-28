@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useLocation } from "react-router-dom";
 import { api } from "../../api/axios";
 import type {
   CaloriesResponse,
@@ -14,6 +15,8 @@ import { BiometricsContext } from "./BiometricsContext";
 
 export function BiometricsProvider({ children }: { children: ReactNode }) {
   const { user } = useUser();
+  const { pathname } = useLocation();
+  const loadedUserId = useRef<number | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [calories, setCalories] = useState<number | null>(null);
@@ -70,9 +73,11 @@ export function BiometricsProvider({ children }: { children: ReactNode }) {
   };
 
   const getMetrics = async (user_id: number) => {
-    getCalories(user_id);
-    getSkinTempDelta(user_id);
-    getBpmGraph(user_id);
+    await Promise.all([
+      getCalories(user_id),
+      getSkinTempDelta(user_id),
+      getBpmGraph(user_id),
+    ]);
   };
 
   useEffect(() => {
@@ -81,10 +86,18 @@ export function BiometricsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (user) {
-      getMetrics(user.id);
+    if (pathname !== "/dashboard" || !user) {
+      loadedUserId.current = null;
+      return;
     }
-  }, [user]);
+
+    if (loadedUserId.current === user.id) return;
+
+    loadedUserId.current = user.id;
+    void getMetrics(user.id).catch((error) => {
+      console.error("Failed to load metrics:", error);
+    });
+  }, [pathname, user?.id]);
 
   return (
     <BiometricsContext.Provider

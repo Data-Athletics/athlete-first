@@ -11,7 +11,7 @@ const Player: React.FC<PlayerProps> = (props) => {
     <>
       <div className="player-container">
         <div className="title-container">
-          <h3 className="input-title">{props.player.username}</h3>
+          <h3 className="input-title">{props.player.name}</h3>
         </div>
       </div>
     </>

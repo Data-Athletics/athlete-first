@@ -53,6 +53,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     const { data: signup_data } = await api.post<User>("auth/register", {
       username: userSignUp.username,
+      name: userSignUp.name,
       password: userSignUp.password,
     });
     await login({
@@ -60,6 +61,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       password: userSignUp.password,
     });
     const user_data = await updateMe({
+      name: userSignUp.name,
       height: userSignUp.height,
       weight: userSignUp.weight,
       age: userSignUp.age,

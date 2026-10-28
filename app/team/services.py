@@ -12,6 +12,7 @@ from app.team.dtos.team_dto import CreateTeamDTO, MyTeamDTO, UpdateTeamDTO
 from app.team.dtos.team_membership_dto import (
     CreateTeamMembershipDTO,
     CreateTeamMembershipRequestDTO,
+    TeamMemberDTO,
     TeamMembershipRequestDTO,
     UpdateTeamMembershipDTO,
 )
@@ -135,15 +136,30 @@ async def delete_team(db: AsyncSession, team: Team):
 # -------------------------------
 
 
-async def list_team_memberships(db: AsyncSession, team: Team) -> list[TeamMembership]:
+async def list_team_memberships(db: AsyncSession, team: Team) -> list[TeamMemberDTO]:
     """List team memberships for a team"""
 
     rows = await db.execute(
-        select(TeamMembership)
+        select(TeamMembership, User.name)
+        .join(User, User.id == TeamMembership.user_id)
         .where(TeamMembership.team_id == team.id)
         .order_by(desc(TeamMembership.id))
     )
-    return list(rows.scalars())
+    return [
+        TeamMemberDTO.model_validate(
+            {
+                "id": membership.id,
+                "created_at": membership.created_at,
+                "updated_at": membership.updated_at,
+                "role": membership.role,
+                "user_id": membership.user_id,
+                "team_id": membership.team_id,
+                "status": membership.status,
+                "name": name,
+            }
+        )
+        for membership, name in rows.all()
+    ]
 
 
 async def list_non_approved_team_memberships(
@@ -152,7 +168,7 @@ async def list_non_approved_team_memberships(
     """List all non-approved memberships for a team."""
 
     rows = await db.execute(
-        select(TeamMembership, User.username)
+        select(TeamMembership, User.name)
         .join(User, User.id == TeamMembership.user_id)
         .where(
             TeamMembership.team_id == team.id,
@@ -171,11 +187,11 @@ async def list_non_approved_team_memberships(
                 "user_id": membership.user_id,
                 "team_id": membership.team_id,
                 "status": membership.status,
-                "username": username,
+                "name": name,
                 "team_name": team.name,
             }
         )
-        for membership, username in rows.all()
+        for membership, name in rows.all()
     ]
 
 

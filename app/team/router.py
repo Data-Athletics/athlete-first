@@ -7,6 +7,7 @@ from app.team.dtos.team_dto import CreateTeamDTO, MyTeamDTO, TeamDTO, UpdateTeam
 from app.team.dtos.team_membership_dto import (
     CreateTeamMembershipDTO,
     CreateTeamMembershipRequestDTO,
+    TeamMemberDTO,
     TeamMembershipDTO,
     TeamMembershipRequestDTO,
     UpdateTeamMembershipDTO,
@@ -91,7 +92,7 @@ memberships_router = APIRouter(
 )
 
 
-@memberships_router.get("", response_model=list[TeamMembershipDTO])
+@memberships_router.get("", response_model=list[TeamMemberDTO])
 async def list_team_memberships_route(db: AsyncSessionDep, team: TeamByIdDep):
     """List team members for a specific team"""
 

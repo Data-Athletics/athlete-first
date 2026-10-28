@@ -24,8 +24,14 @@ class TeamMembershipDTO(BaseTeamMembershipDTO, BaseModelDTO):
 class TeamMembershipRequestDTO(TeamMembershipDTO):
     """A membership request with the user and team display names"""
 
-    username: str
+    name: str
     team_name: str
+
+
+class TeamMemberDTO(TeamMembershipDTO):
+    """A team membership with the user's display name"""
+
+    name: str
 
 
 class CreateTeamMembershipDTO(BaseTeamMembershipDTO):

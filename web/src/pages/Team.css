@@ -1,0 +1,152 @@
+.team-page-container {
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.team-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.team-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+  background-color: var(--container-bg);
+  padding: 36px 64px;
+  border-radius: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.team-section h2 {
+  margin: 0 0 4px;
+}
+
+.team-section p {
+  margin: 0;
+}
+
+.team-list-section {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.team-requests-section {
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.team-request-form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding-bottom: 24px;
+}
+
+.team-request-form .text-input {
+  width: 300px;
+  max-width: 100%;
+  margin-bottom: 0;
+  box-sizing: border-box;
+}
+
+.team-select {
+  margin-bottom: 0;
+  width: 300px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.team-request-form button {
+  margin-top: 12px;
+}
+
+.team-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+  gap: 24px;
+  padding: 20px 0;
+  border-top: 1px solid color-mix(in srgb, var(--container-bg), var(--text) 35%);
+  box-sizing: border-box;
+}
+
+.team-item-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.team-name {
+  font-weight: 600;
+}
+
+.team-player {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.request-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  padding: 20px 0;
+  border-top: 1px solid color-mix(in srgb, var(--container-bg), var(--text) 35%);
+  box-sizing: border-box;
+}
+
+.request-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.request-username {
+  font-weight: 600;
+}
+
+.request-team {
+  color: color-mix(in srgb, var(--text), var(--container-bg) 35%);
+}
+
+.request-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 700px) {
+  .team-section {
+    padding: 28px 24px;
+  }
+
+  .team-item,
+  .request-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .team-item > button,
+  .team-player button,
+  .request-actions {
+    align-self: flex-end;
+  }
+
+  .team-player {
+    gap: 10px;
+  }
+}

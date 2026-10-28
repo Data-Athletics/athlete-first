@@ -54,10 +54,15 @@ async def test_user_registration(db: AsyncSession, client: AsyncClient):
     """Unauthenticated users should be able to register an account"""
 
     # A new user can register
-    payload = {"username": fake.username(), "password": "changeme"}
+    payload = {
+        "username": fake.username(),
+        "name": "Registered User",
+        "password": "changeme",
+    }
 
     res = await client.post("/auth/register", json=payload)
     assert res.status_code == 201, res.content
+    assert res.json()["name"] == payload["name"]
     assert await model_count(db, User) == 1
 
     # The same user cannot register twice
@@ -66,7 +71,10 @@ async def test_user_registration(db: AsyncSession, client: AsyncClient):
     assert await model_count(db, User) == 1
 
     # The user can log in
-    res = await client.post("/auth/token", data=payload)
+    res = await client.post(
+        "/auth/token",
+        data={"username": payload["username"], "password": payload["password"]},
+    )
     assert res.status_code == 200
 
     data = res.json()

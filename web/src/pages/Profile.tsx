@@ -12,6 +12,7 @@ const Profile: React.FC = () => {
 
   const navigate = useNavigate();
   const [height, setHeight] = useState(user?.height ?? 0);
+  const [name, setName] = useState(user?.name ?? "");
   const [weight, setWeight] = useState(user?.weight ?? 0);
   const [sex, setSex] = useState<string>(user?.sex ?? "");
   const [age, setAge] = useState(user?.age ?? 0);
@@ -23,6 +24,7 @@ const Profile: React.FC = () => {
     const loweredSex = sex.toLowerCase();
     if (loweredSex === "male" || loweredSex === "female") {
       await updateUser({
+        name,
         height,
         weight,
         sex: loweredSex,
@@ -39,6 +41,7 @@ const Profile: React.FC = () => {
     if (!user) return;
 
     setHeight(user.height ?? 0);
+    setName(user.name);
     setWeight(user.weight ?? 0);
     setAge(user.age ?? 0);
     setSex(user.sex ?? "");
@@ -49,7 +52,7 @@ const Profile: React.FC = () => {
       <Nav>
         <div className="nav-button-container">
           <button onClick={() => navigate("/dashboard")}>Dashboard</button>
-          <button onClick={() => navigate("/requests")}>Requests</button>
+          <button onClick={() => navigate("/team")}>Team</button>
           <button onClick={logout}>Log out</button>
         </div>
       </Nav>
@@ -58,6 +61,15 @@ const Profile: React.FC = () => {
           <h1 className="page-header">Profile</h1>
         </div>
         <div className="fields-container">
+          <h3 className="input-title">Name</h3>
+          <input
+            className="text-input"
+            type="text"
+            placeholder="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
           <h3 className="input-title">Height</h3>
           <input
             className="text-input"

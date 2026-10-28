@@ -7,6 +7,7 @@ interface RequestProps {
   onAccept: () => void;
   onReject: () => void;
   onDelete: () => void;
+  loadingAction: "accept" | "reject" | "delete" | null;
 }
 
 const Request: React.FC<RequestProps> = ({
@@ -15,21 +16,28 @@ const Request: React.FC<RequestProps> = ({
   onAccept,
   onReject,
   onDelete,
+  loadingAction,
 }) => (
   <div className="request-row">
     <div className="request-details">
       <span className="request-username">
-        {isStaff ? request.username : request.team_name}
+        {isStaff ? request.name : request.team_name}
       </span>
       {isStaff && <span className="request-team">{request.team_name}</span>}
     </div>
     <div className="request-actions">
       {isStaff ? (
-        <button onClick={onDelete}>Delete</button>
+        <button disabled={loadingAction !== null} onClick={onDelete}>
+          {loadingAction === "delete" ? "Deleting..." : "Delete"}
+        </button>
       ) : (
         <>
-          <button onClick={onAccept}>Accept</button>
-          <button onClick={onReject}>Reject</button>
+          <button disabled={loadingAction !== null} onClick={onAccept}>
+            {loadingAction === "accept" ? "Accepting..." : "Accept"}
+          </button>
+          <button disabled={loadingAction !== null} onClick={onReject}>
+            {loadingAction === "reject" ? "Rejecting..." : "Reject"}
+          </button>
         </>
       )}
     </div>

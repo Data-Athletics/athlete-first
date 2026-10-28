@@ -82,7 +82,7 @@ const Dashboard: React.FC = () => {
                 teamMembership
                   ? {
                       value: String(teamMembership.id),
-                      label: String(teamMembership.user_id),
+                      label: teamMembership.name,
                     }
                   : null
               }
@@ -105,7 +105,7 @@ const Dashboard: React.FC = () => {
               placeholder="Select team..."
             />
           )}
-          <button onClick={() => navigate("/requests")}>Requests</button>
+          <button onClick={() => navigate("/team")}>Team</button>
           <button onClick={() => navigate("/profile")}>Profile</button>
           <button onClick={logout}>Log out</button>
         </div>

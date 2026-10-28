@@ -8,6 +8,7 @@ class BaseUserDTO(BaseDTO):
     """Base fields for user API"""
 
     username: str = Field(description="Unique username")
+    name: str = Field(min_length=1, description="Professional display name")
     height: float | None = Field(default=None, description="Height in inches", gt=0)
     weight: float | None = Field(default=None, description="Weight in pounds", gt=0)
     sex: UserSex | None = Field(default=None, description="User's sex")
@@ -45,6 +46,7 @@ class UpdateUserBaseDTO(BaseUserDTO):
     """Base fields available to update for a user"""
 
     username: str | None = Field(default=None)
+    name: str | None = Field(default=None)
     height: float | None = Field(default=None, gt=0)
     weight: float | None = Field(default=None, gt=0)
     sex: UserSex | None = Field(default=None)

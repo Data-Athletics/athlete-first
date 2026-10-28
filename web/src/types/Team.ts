@@ -21,12 +21,17 @@ export interface MyTeam extends Team {
 }
 
 export interface TeamMembershipRequest extends TeamMembership {
-  username: string;
+  name: string;
   team_name: string;
+}
+
+export interface TeamMember extends TeamMembership {
+  name: string;
 }
 
 export type TeamsResponse = Team[];
 export type MyTeamsResponse = MyTeam[];
+export type TeamMembersResponse = TeamMember[];
 
 export interface Option {
   value: string;
