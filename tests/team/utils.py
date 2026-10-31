@@ -37,6 +37,11 @@ async def create_test_team(
             for user_id in user_ids
         ]
         db.add_all(mems)
+        # await db.flush()
+
+        # # Add policies
+        # dsps = [MembershipDsp(membership_id=mem.id) for mem in mems]
+        # db.add_all(dsps)
 
         await db.commit()
         await db.refresh(team)

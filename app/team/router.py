@@ -1,8 +1,14 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.auth.dependencies import CurrentUserDep, get_current_user
 from app.core.dependencies import AsyncSessionDep
-from app.team.dependencies import TeamByIdDep, TeamMembershipByIdDep
+from app.team.dependencies import (
+    CurrentUserTeamMembership,
+    TeamByIdDep,
+    TeamMembershipByIdDep,
+)
+from app.team.dtos.member_dsp_dto import MembershipDspDTO, SetMembershipDspDTO
+from app.team.dtos.team_dsr_dto import SetTeamDsrDTO, TeamDsrDTO
 from app.team.dtos.team_dto import CreateTeamDTO, MyTeamDTO, TeamDTO, UpdateTeamDTO
 from app.team.dtos.team_membership_dto import (
     CreateTeamMembershipDTO,
@@ -12,12 +18,15 @@ from app.team.dtos.team_membership_dto import (
     TeamMembershipRequestDTO,
     UpdateTeamMembershipDTO,
 )
+from app.team.models import MembershipDsp, TeamDsr
 from app.team.services import (
     create_team,
     create_team_membership,
     create_team_membership_request,
     delete_team,
     delete_team_membership,
+    get_effective_membership_dsp,
+    get_effective_team_dsr,
     get_my_teams,
     get_team_by_id,
     list_non_approved_team_memberships,
@@ -158,6 +167,97 @@ async def delete_team_membership_route(
 
 
 router.include_router(memberships_router)
+
+
+# ----------------------------------------
+# Team data sharing requirements routes
+# ----------------------------------------
+
+team_dsr_router = APIRouter(
+    prefix="/teams/{team_id}/data-sharing-requirements",
+    dependencies=[Depends(get_team_by_id)],
+)
+
+
+@team_dsr_router.get("", response_model=TeamDsrDTO)
+async def retrieve_team_dsr_route(team: TeamByIdDep):
+    """Get the data sharing requirements for a team"""
+
+    return get_effective_team_dsr(team)
+
+
+@team_dsr_router.put("", response_model=TeamDsrDTO)
+async def set_team_dsr_route(
+    db: AsyncSessionDep, team: TeamByIdDep, user: CurrentUserDep, body: SetTeamDsrDTO
+):
+    """Fully update/replace a team's data sharing requirements"""
+
+    payload = body.model_dump(exclude_unset=True)
+
+    dsr: TeamDsr
+    if team.dsr is not None:
+        team.dsr.content = payload
+        dsr = team.dsr
+    else:
+        dsr = TeamDsr(team_id=team.id, content=payload)
+
+    db.add(dsr)
+    await db.flush()
+    await db.refresh(team)
+
+    return get_effective_team_dsr(team)
+
+
+router.include_router(team_dsr_router)
+
+# ----------------------------------------
+# Member data sharing policy routes
+# ----------------------------------------
+
+member_dsp_router = APIRouter(
+    prefix="/teams/{team_id}/data-sharing-policy",
+    dependencies=[Depends(get_team_by_id)],
+)
+
+
+@member_dsp_router.get("", response_model=MembershipDspDTO)
+async def retrieve_membership_dsp_route(membership: CurrentUserTeamMembership):
+    """Get the data sharing policy for the membership of the current user"""
+
+    if membership.dsp is None:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            detail="User has not accepted the data sharing policy yet",
+        )
+
+    return get_effective_membership_dsp(membership)
+
+
+@member_dsp_router.put("", response_model=MembershipDspDTO)
+async def set_membership_dsp_route(
+    db: AsyncSessionDep,
+    membership: CurrentUserTeamMembership,
+    body: SetMembershipDspDTO,
+):
+    """Fully update/replace the data sharing policy for the membership of the current user"""
+
+    payload = body.model_dump(exclude_unset=True)
+
+    dsp: MembershipDsp
+    if membership.dsp is not None:
+        membership.dsp.content = payload
+        dsp = membership.dsp
+    else:
+        dsp = MembershipDsp(membership_id=membership.id, content=payload)
+
+    db.add(dsp)
+    await db.flush()
+    await db.refresh(membership)
+
+    return get_effective_membership_dsp(membership)
+
+
+router.include_router(member_dsp_router)
 
 
 __all__ = ["router"]
