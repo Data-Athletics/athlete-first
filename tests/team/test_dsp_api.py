@@ -1,6 +1,8 @@
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.team.models import TeamDsr
+from app.team.services import get_effective_membership_dsp
 from app.user.models import User
 from tests.team.utils import create_test_team
 
@@ -82,3 +84,53 @@ async def test_set_dsp(
     assert data["hrv_shared"] is True
     assert data["effort_shared"] is True
     assert data["skin_temp_delta_shared"] is True
+
+
+async def test_set_dsp_past_min(
+    db: AsyncSession, admin_client: AsyncClient, current_admin: User
+):
+    """Should reject updates to dsp that go under requirements"""
+
+    team = await create_test_team(db, user_ids=[current_admin.id])
+
+    dsr = TeamDsr(
+        team_id=team.id,
+        content={"bpm_shared": True, "calories_shared": False, "effort_shared": True},
+    )
+    db.add(dsr)
+    await db.commit()
+    await db.refresh(team)
+
+    membership = team.memberships[0]
+
+    # User creates dsp with default settings
+    res = await admin_client.put(f"/team/teams/{team.id}/data-sharing-policy", json={})
+    assert res.status_code == 200
+
+    data = res.json()
+    assert data["bpm_shared"] is True
+    assert data["calories_shared"] is False
+    assert data["respiratory_rate_shared"] is True
+    assert data["effort_shared"] is True
+
+    # User attempts to override false value
+    payload = {"calories_shared": True}
+    res = await admin_client.put(
+        f"/team/teams/{team.id}/data-sharing-policy", json=payload
+    )
+    assert res.status_code == 400
+
+    await db.refresh(membership)
+    dsp = get_effective_membership_dsp(membership)
+    assert dsp.calories_shared is False
+
+    # User attempts to override true value
+    payload = {"bpm_shared": False}
+    res = await admin_client.put(
+        f"/team/teams/{team.id}/data-sharing-policy", json=payload
+    )
+    assert res.status_code == 400
+
+    await db.refresh(membership)
+    dsp = get_effective_membership_dsp(membership)
+    assert dsp.bpm_shared is True

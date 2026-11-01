@@ -236,6 +236,7 @@ async def retrieve_membership_dsp_route(membership: CurrentUserTeamMembership):
 @member_dsp_router.put("", response_model=MembershipDspDTO)
 async def set_membership_dsp_route(
     db: AsyncSessionDep,
+    team: TeamByIdDep,
     membership: CurrentUserTeamMembership,
     body: SetMembershipDspDTO,
 ):
@@ -243,6 +244,25 @@ async def set_membership_dsp_route(
 
     payload = body.model_dump(exclude_unset=True)
 
+    # Check against default requirements
+    dsr = get_effective_team_dsr(team)
+    invalid_keys = []
+    for key, value in payload.items():
+        required_val = getattr(dsr, key, None)
+
+        if required_val is None:
+            continue
+
+        if value != required_val:
+            invalid_keys.append(key)
+
+    if len(invalid_keys) != 0:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid permissions based on team requirements: {','.join(invalid_keys)}",
+        )
+
+    # Set the new policy
     dsp: MembershipDsp
     if membership.dsp is not None:
         membership.dsp.content = payload
