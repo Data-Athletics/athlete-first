@@ -52,20 +52,6 @@ async def init():
         await conn.execute(
             text("ALTER TABLE af_user ADD COLUMN IF NOT EXISTS name VARCHAR NOT NULL")
         )
-        for table in (
-            "af_heartrate",
-            "af_rrinterval",
-            "af_gravity",
-            "af_bloodoxygenraw",
-            "af_skintemperatureraw",
-            "af_respirationraw",
-        ):
-            await conn.execute(
-                text(
-                    f"CREATE UNIQUE INDEX IF NOT EXISTS "
-                    f"uq_{table}_user_timestamp ON {table} (user_id, timestamp)"
-                )
-            )
 
 
 @app.command()

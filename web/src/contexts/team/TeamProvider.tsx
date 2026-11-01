@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useLocation } from "react-router-dom";
 import { api } from "../../api/axios";
 import {
   type Option,
@@ -23,6 +24,7 @@ const selectedMembershipStorageKey = (userId: number) =>
 
 export function TeamProvider({ children }: { children: ReactNode }) {
   const { user } = useUser();
+  const location = useLocation();
 
   const [approvedTeamMemberships, setApprovedTeamMemberships] = useState<
     TeamMember[]
@@ -46,6 +48,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   const [team, setTeamState] = useState<Team | null>(null);
   const [loading, setLoading] = useState(true);
   const loadedUserId = useRef<number | null>(null);
+  const lastTeamPageLoad = useRef<string | null>(null);
 
   const setTeam = (selectedTeam: Team | null) => {
     setTeamState(selectedTeam);
@@ -202,13 +205,21 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       .map(({ id, name }) => ({ id, name }));
     setMyTeams(data);
     setTeams(approvedTeams);
+    setTeamsOptions(
+      approvedTeams.map((currentTeam) => ({
+        value: String(currentTeam.id),
+        label: currentTeam.name,
+      })),
+    );
     const savedTeamId = Number(
       localStorage.getItem(selectedTeamStorageKey(user?.id ?? 0)),
     );
     const savedTeam =
       approvedTeams.find((candidate) => candidate.id === savedTeamId) ?? null;
     setTeamState(savedTeam);
-    await loadTeamMembershipRequests(approvedTeams, data);
+    void loadTeamMembershipRequests(approvedTeams, data).catch((error) =>
+      console.error("Failed to load team requests:", error),
+    );
     if (!savedTeam) setLoading(false);
   };
 
@@ -230,6 +241,20 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user) {
       loadedUserId.current = null;
+      lastTeamPageLoad.current = null;
+      return;
+    }
+
+    if (location.pathname === "/team") {
+      const loadKey = `${user.id}:${location.key}`;
+      if (lastTeamPageLoad.current === loadKey) return;
+
+      lastTeamPageLoad.current = loadKey;
+      loadedUserId.current = user.id;
+      void getTeams().catch((error) => {
+        console.error("Failed to refresh teams:", error);
+        setLoading(false);
+      });
       return;
     }
 
@@ -240,7 +265,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       console.error("Failed to load teams:", error);
       setLoading(false);
     });
-  }, [user?.id]);
+  }, [location.key, location.pathname, user?.id]);
 
   useEffect(() => {
     setTeamsOptions(
