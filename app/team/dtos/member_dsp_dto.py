@@ -26,7 +26,10 @@ class MembershipDspDTO(BaseMembershipDspDTO):
     model_config = ConfigDict(from_attributes=True, extra="ignore")
 
     membership_id: int = Field(description="Membership id associated with the policy")
-    invalid_fields: list[str] = Field(description="List of fields that do not match the team requirements", default_factory=list)
+    invalid_fields: list[str] = Field(
+        description="List of fields that do not match the team requirements",
+        default_factory=list,
+    )
 
     bpm_shared: bool | None = Field(default=True)
     calories_shared: bool | None = Field(default=True)
