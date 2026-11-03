@@ -17,10 +17,7 @@ class BaseMembershipDspDTO(BaseDTO):
 class SetMembershipDspDTO(BaseMembershipDspDTO):
     """Fields a user can set for their data sharing policy within a team"""
 
-    reset: bool = Field(
-        default=False,
-        description="If true, will reset the policy to be the default for the team as defined by the data sharing requirements",
-    )
+    pass
 
 
 class MembershipDspDTO(BaseMembershipDspDTO):
@@ -29,6 +26,7 @@ class MembershipDspDTO(BaseMembershipDspDTO):
     model_config = ConfigDict(from_attributes=True, extra="ignore")
 
     membership_id: int = Field(description="Membership id associated with the policy")
+    invalid_fields: list[str] = Field(description="List of fields that do not match the team requirements", default_factory=list)
 
     bpm_shared: bool | None = Field(default=True)
     calories_shared: bool | None = Field(default=True)

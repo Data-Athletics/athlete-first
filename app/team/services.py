@@ -359,8 +359,18 @@ def get_effective_membership_dsp(membership: TeamMembership):
     membership_dsp = getattr(membership.dsp, "content", {})
     team_dsr = getattr(membership.team.dsr, "content", {})
 
+    # Create policy from member settings, team requirements, and global defaults
     merged_policy = {**team_dsr, **membership_dsp}
-
     effective_policy = MembershipDspDTO(**merged_policy, membership_id=membership.id)
+
+    # Check for invalid fields
+    for field, required_value in team_dsr.items():
+        policy_value = membership_dsp.get(field, None)
+
+        if policy_value is None:
+            continue
+
+        if policy_value != required_value:
+            effective_policy.invalid_fields.append(field)
 
     return effective_policy

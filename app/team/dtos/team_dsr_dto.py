@@ -17,10 +17,7 @@ class BaseTeamDsrDTO(BaseDTO):
 class SetTeamDsrDTO(BaseTeamDsrDTO):
     """Minimum data sharing requirements for all athletes in a team"""
 
-    reset: bool = Field(
-        default=False,
-        description="If true, will reset the requirements to be the default for all teams",
-    )
+    pass
 
 
 class TeamDsrDTO(BaseTeamDsrDTO):
