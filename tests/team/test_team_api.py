@@ -22,6 +22,23 @@ async def test_list_teams(admin_client: AsyncClient, db: AsyncSession):
     assert len(data) == 3
 
 
+async def test_get_my_teams(
+    admin_client: AsyncClient, db: AsyncSession, current_admin: User
+):
+    """Should be able to list the current user's teams and memberships"""
+
+    team = await create_test_team(db, user_ids=[current_admin.id])
+
+    res = await admin_client.get("/team/teams/me")
+    assert res.status_code == 200
+
+    data = res.json()
+    assert len(data) == 1
+    assert data[0]["id"] == team.id
+    assert data[0]["membership"]["user_id"] == current_admin.id
+    assert data[0]["membership"]["team_id"] == team.id
+
+
 async def test_create_team(admin_client: AsyncClient, db: AsyncSession):
     """Should be able to create a new team"""
 

@@ -1,10 +1,15 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useLocation } from "react-router-dom";
 import { api } from "../../api/axios";
 import type {
   CaloriesResponse,
   DataPoint,
+  EffortResponse,
   GraphData,
   GraphResponse,
+  HRVResponse,
+  RespiratoryRateResponse,
+  RHRResponse,
   SkinTempDeltaResponse,
   UploadResponse,
 } from "../../types/Biometrics";
@@ -14,10 +19,16 @@ import { BiometricsContext } from "./BiometricsContext";
 
 export function BiometricsProvider({ children }: { children: ReactNode }) {
   const { user } = useUser();
+  const { pathname } = useLocation();
+  const loadedUserId = useRef<number | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [calories, setCalories] = useState<number | null>(null);
   const [skinTempDelta, setSkinTempDelta] = useState<number | null>(null);
+  const [hrv, setHrv] = useState<number | null>(null);
+  const [rhr, setRhr] = useState<number | null>(null);
+  const [respiratoryRate, setRespiratoryRate] = useState<number | null>(null);
+  const [effort, setEffort] = useState<number | null>(null);
   const [bpmGraph, setBpmGraph] = useState<GraphData | null>(null);
 
   const uploadCsv = async (file: File, user_id: number) => {
@@ -50,6 +61,36 @@ export function BiometricsProvider({ children }: { children: ReactNode }) {
     setSkinTempDelta(data.skin_temp_delta);
   };
 
+  const getHRV = async (user_id: number) => {
+    const { data } = await api.get<HRVResponse>(`/biometrics/${user_id}/hrv`, {
+      params: { end_time: new Date() },
+    });
+    setHrv(data.hrv);
+  };
+
+  const getRHR = async (user_id: number) => {
+    const end = new Date();
+    const start = twoMonthsBack(end);
+    const { data } = await api.get<RHRResponse>(`/biometrics/${user_id}/rhr`, {
+      params: { start_time: start, end_time: end },
+    });
+    setRhr(data.rhr);
+  };
+
+  const getRespiratoryRate = async (user_id: number) => {
+    const { data } = await api.get<RespiratoryRateResponse>(
+      `/biometrics/${user_id}/respiratory-rate`,
+    );
+    setRespiratoryRate(data.respiratory_rate);
+  };
+
+  const getEffort = async (user_id: number) => {
+    const { data } = await api.get<EffortResponse>(
+      `/biometrics/${user_id}/effort`,
+    );
+    setEffort(data.effort);
+  };
+
   const getBpmGraph = async (
     user_id: number,
     start: Date = twoMonthsBack(),
@@ -70,9 +111,27 @@ export function BiometricsProvider({ children }: { children: ReactNode }) {
   };
 
   const getMetrics = async (user_id: number) => {
-    getCalories(user_id);
-    getSkinTempDelta(user_id);
-    getBpmGraph(user_id);
+    setLoading(true);
+    await Promise.allSettled([
+      getCalories(user_id),
+      getSkinTempDelta(user_id),
+      getHRV(user_id),
+      getRHR(user_id),
+      getRespiratoryRate(user_id),
+      getEffort(user_id),
+      getBpmGraph(user_id),
+    ]);
+    setLoading(false);
+  };
+
+  const clearMetrics = () => {
+    setCalories(null);
+    setSkinTempDelta(null);
+    setHrv(null);
+    setRhr(null);
+    setRespiratoryRate(null);
+    setEffort(null);
+    setBpmGraph(null);
   };
 
   useEffect(() => {
@@ -81,10 +140,18 @@ export function BiometricsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (user) {
-      getMetrics(user.id);
+    if (pathname !== "/dashboard" || !user || user.is_staff) {
+      loadedUserId.current = null;
+      return;
     }
-  }, [user]);
+
+    if (loadedUserId.current === user.id) return;
+
+    loadedUserId.current = user.id;
+    void getMetrics(user.id).catch((error) => {
+      console.error("Failed to load metrics:", error);
+    });
+  }, [pathname, user?.id]);
 
   return (
     <BiometricsContext.Provider
@@ -92,12 +159,21 @@ export function BiometricsProvider({ children }: { children: ReactNode }) {
         loading,
         calories,
         skinTempDelta,
+        hrv,
+        rhr,
+        respiratoryRate,
+        effort,
         bpmGraph,
         uploadCsv,
         getCalories,
         getSkinTempDelta,
+        getHRV,
+        getRHR,
+        getRespiratoryRate,
+        getEffort,
         getBpmGraph,
         getMetrics,
+        clearMetrics,
       }}
     >
       {children}

@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+from sqlalchemy import select, text
+from sqlalchemy.exc import IntegrityError
 
 from app.auth.services import get_password_hash
 from app.biometrics.decoder import decode_noop_csv
@@ -24,6 +26,7 @@ from app.biometrics.services import (
     skin_temp_delta,
 )
 from app.core.database import ModelBase, get_db_session_context, get_engine
+from app.team.models import Team, TeamMembership, TeamMembershipStatusType, TeamRoleType
 from app.user.models import User
 
 app = typer.Typer()
@@ -46,6 +49,9 @@ async def init():
 
     async with engine.begin() as conn:
         await conn.run_sync(ModelBase.metadata.create_all)
+        await conn.execute(
+            text("ALTER TABLE af_user ADD COLUMN IF NOT EXISTS name VARCHAR NOT NULL")
+        )
 
 
 @app.command()
@@ -53,6 +59,7 @@ async def init():
 async def create_user(
     username: Annotated[str, typer.Option(help="Username of the new user")],
     password: Annotated[str, typer.Option(help="Password of the new user")],
+    name: Annotated[str, typer.Option(help="Professional display name")],
     height: Annotated[float | None, typer.Option(help="Height in inches")] = None,
     weight: Annotated[float | None, typer.Option(help="Weight in pounds")] = None,
     sex: Annotated[
@@ -62,23 +69,28 @@ async def create_user(
     is_admin: Annotated[
         bool, typer.Option("--admin", help="Create the user as an admin")
     ] = False,
+    is_staff: Annotated[
+        bool, typer.Option("--staff", help="Create the user as a staff member")
+    ] = False,
 ):
     """Create a new application user."""
 
-    if sex is not None and sex not in ("Male", "Female"):
-        raise typer.BadParameter("Sex must be either 'Male' or 'Female'")
+    if sex is not None and sex.lower() not in ("male", "female"):
+        raise typer.BadParameter("Sex must be either 'male' or 'female'")
 
     async with get_db_session_context() as db:
         hashed_password = get_password_hash(password)
 
         user = User(
             username=username,
+            name=name,
             hashed_password=hashed_password,
             height=height,
             weight=weight,
             sex=sex,
             age=age,
             is_admin=is_admin,
+            is_staff=is_staff,
         )
 
         db.add(user)
@@ -87,7 +99,9 @@ async def create_user(
         print(
             f"Created user: <User id={user.id} "
             f"is_admin={user.is_admin} "
+            f"is_staff={user.is_staff} "
             f"username='{user.username}' "
+            f"name='{user.name}' "
             f"height={user.height} "
             f"weight={user.weight} "
             f"sex={user.sex} "
@@ -131,11 +145,14 @@ async def upload_biometrics(
         with file.open("rb") as csv_file:
             noop_data = decode_noop_csv(csv_file)
 
-        await bulk_upload_noop_data(db, user_id, noop_data)
+        inserted, duplicates = await bulk_upload_noop_data(db, user_id, noop_data)
 
         await db.commit()
 
-    print(f"Uploaded biometrics: <User id={user_id} file='{file}'>")
+    print(
+        f"Uploaded biometrics: <User id={user_id} file='{file}' "
+        f"inserted={inserted} duplicates={duplicates}>"
+    )
 
 
 @app.command()
@@ -264,6 +281,102 @@ async def bpm(
         f"x={data.x} "
         f"y={data.y}>"
     )
+
+
+@app.command()
+@async_command
+async def create_team(name: Annotated[str, typer.Option(help="Name of the new team")]):
+    """Create a new team."""
+
+    async with get_db_session_context() as db:
+        team = Team(name=name)
+        db.add(team)
+
+        try:
+            await db.flush()
+            await db.refresh(team)
+        except IntegrityError as e:
+            await db.rollback()
+            raise typer.BadParameter("Team already exists") from e
+
+        await db.commit()
+
+        print(f"Created team: <Team id={team.id} name='{team.name}'>")
+
+
+@app.command()
+@async_command
+async def create_membership(
+    user_id: Annotated[int, typer.Option(help="User ID to add to the team")],
+    team_id: Annotated[int, typer.Option(help="Team ID to join")],
+    role: Annotated[
+        TeamRoleType, typer.Option(help="Role of the user in the team")
+    ] = TeamRoleType.ATHLETE,
+    status: Annotated[
+        TeamMembershipStatusType, typer.Option(help="Consent status of the membership")
+    ] = TeamMembershipStatusType.PENDING,
+):
+    """Create a new team membership."""
+
+    async with get_db_session_context() as db:
+        user = await db.get(User, user_id)
+        team = await db.get(Team, team_id)
+
+        if user is None:
+            raise typer.BadParameter(f"User {user_id} does not exist.")
+
+        if team is None:
+            raise typer.BadParameter(f"Team {team_id} does not exist.")
+
+        membership = TeamMembership(
+            user_id=user_id, team_id=team_id, role=role, status=status
+        )
+
+        db.add(membership)
+        await db.commit()
+
+        print(
+            f"Created membership: <TeamMembership id={membership.id} "
+            f"user_id={membership.user_id} "
+            f"team_id={membership.team_id} "
+            f"role={membership.role} "
+            f"status={membership.status}>"
+        )
+
+
+@app.command()
+@async_command
+async def approve_membership(
+    team_id: Annotated[int, typer.Option(help="Team ID")],
+    user_id: Annotated[int, typer.Option(help="User ID")],
+):
+    """Approve a user's team membership."""
+
+    async with get_db_session_context() as db:
+        rows = await db.execute(
+            select(TeamMembership).where(
+                TeamMembership.team_id == team_id, TeamMembership.user_id == user_id
+            )
+        )
+        membership = rows.scalar_one_or_none()
+
+        if membership is None:
+            raise typer.BadParameter(
+                f"No membership exists for user {user_id} in team {team_id}"
+            )
+
+        membership.status = TeamMembershipStatusType.APPROVE
+
+        db.add(membership)
+        await db.commit()
+
+        print(
+            f"Approved membership: <TeamMembership id={membership.id} "
+            f"user_id={membership.user_id} "
+            f"team_id={membership.team_id} "
+            f"role={membership.role} "
+            f"status={membership.status}>"
+        )
 
 
 if __name__ == "__main__":

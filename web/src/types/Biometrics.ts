@@ -21,6 +21,22 @@ export interface SkinTempDeltaResponse {
   skin_temp_delta: number;
 }
 
+export interface HRVResponse extends IntervalData {
+  hrv: number | null;
+}
+
+export interface RHRResponse extends IntervalData {
+  rhr: number | null;
+}
+
+export interface RespiratoryRateResponse {
+  respiratory_rate: number | null;
+}
+
+export interface EffortResponse {
+  effort: number | null;
+}
+
 export interface GraphResponse extends IntervalData {
   x: Date[];
   y: number[];

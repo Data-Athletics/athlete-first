@@ -37,15 +37,6 @@ app = FastAPI(
     },
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=app_settings.allow_origins,
-    allow_methods=app_settings.allow_methods,
-    allow_headers=app_settings.allow_headers,
-    expose_headers=app_settings.expose_headers,
-)
-
 
 router = APIRouter()
 app.include_router(router)
@@ -84,6 +75,16 @@ async def handle_exceptions(request: Request, exc: Exception):
         ),
         headers=headers,
     )
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_credentials=True,
+    allow_origins=app_settings.allow_origins,
+    allow_methods=app_settings.allow_methods,
+    allow_headers=app_settings.allow_headers,
+    expose_headers=app_settings.expose_headers,
+)
 
 
 @app.get("/", include_in_schema=False)

@@ -12,6 +12,7 @@ def base_user_payload():
 
     return {
         "username": fake.username(),
+        "name": fake.name(),
         "height": fake.height(),
         "weight": fake.weight(),
         "sex": fake.sex(),

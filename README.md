@@ -27,20 +27,46 @@ docker compose run --rm athlete-first sh -c "bash /scripts/wait-for-db.sh && uv 
 Create a user:
 
 ```bash
-docker compose run --rm athlete-first sh -c "bash /scripts/wait-for-db.sh && uv run python app/cli.py create-user --username user --password changeme --height 70 --weight 170 --sex Male --age 22"
+docker compose run --rm athlete-first sh -c "bash /scripts/wait-for-db.sh && uv run python app/cli.py create-user --username user --name 'Example User' --password changeme --height 70 --weight 170 --sex Male --age 22"
 ```
 
 Create an admin user:
 
 ```bash
-docker compose run --rm athlete-first sh -c "bash /scripts/wait-for-db.sh && uv run python app/cli.py create-user --username admin --password changeme --height 70 --weight 170 --sex Male --age 22 --admin"
+docker compose run --rm athlete-first sh -c "bash /scripts/wait-for-db.sh && uv run python app/cli.py create-user --username admin --name 'Example Admin' --password changeme --height 70 --weight 170 --sex Male --age 22 --admin"
 ```
 
-Upload biometric data:
+Create a team:
+
+```bash
+docker compose run --rm athlete-first sh -c "bash /scripts/wait-for-db.sh && uv run python app/cli.py create-team --name 'Example Team'"
+```
+
+Create a team membership:
+
+```bash
+docker compose run --rm athlete-first sh -c "bash /scripts/wait-for-db.sh && uv run python app/cli.py create-membership --user-id 1 --team-id 1"
+```
+
+Approve a team membership:
+
+```bash
+docker compose run --rm athlete-first sh -c "bash /scripts/wait-for-db.sh && uv run python app/cli.py approve-membership --user-id 1 --team-id 1"
+```
+
+Upload biometric data (duplicate rows are skipped and counted):
 
 ```bash
 docker compose run --rm athlete-first sh -c "bash /scripts/wait-for-db.sh && uv run python app/cli.py upload-biometrics --user-id 1 --file tests/fixtures/noop_mock.csv"
 ```
+
+Generate one month of sample biometric data:
+
+```bash
+python3 utilities/generate_biometrics.py
+```
+
+This writes `~/biometrics_one_month.csv`. Use `--days`, `--sample-seconds`, or `--output` to customize it.
 
 Calculate HRV:
 

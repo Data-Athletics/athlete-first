@@ -3,9 +3,9 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import inspect, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.biometrics.dtos.AggregationsDTOs import BiometricsUploadResponseDTO
 from app.core.config import app_settings, db_settings
 from app.core.database import ModelBase, get_db_session, get_engine
-from app.core.dtos import SimpleResponseDTO
 from app.main import app as main_app
 from app.user.models import User
 from tests.auth.utils import create_test_user_token
@@ -106,7 +106,7 @@ async def noop_user_fixture(admin_client: AsyncClient, current_admin: User):
             metrics_endpoint, files={"file": ("noop_mock.csv", file, "text/csv")}
         )
 
-    SimpleResponseDTO.model_validate(creation_response.json())
+    BiometricsUploadResponseDTO.model_validate(creation_response.json())
     assert creation_response.status_code == 201
 
     return current_admin

@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.faker import fake
-from app.team.models import Team, TeamMembership
+from app.team.models import Team, TeamMembership, TeamMembershipStatusType
 from app.user.models import User
 
 
@@ -29,7 +29,12 @@ async def create_test_team(
         # Combine the `users` and `user_ids` list into one `user_ids` list without duplicates
         user_ids = list(set((user_ids or []) + [u.id for u in (users or [])]))
         mems = [
-            TeamMembership(user_id=user_id, team_id=team.id) for user_id in user_ids
+            TeamMembership(
+                user_id=user_id,
+                team_id=team.id,
+                status=TeamMembershipStatusType.APPROVE,
+            )
+            for user_id in user_ids
         ]
         db.add_all(mems)
 

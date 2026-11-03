@@ -3,15 +3,17 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../contexts/user/UserContext";
 import Nav from "../Nav";
+import { alertUser } from "../utils/alerts";
 import "./Home.css";
 
 const Home: React.FC = () => {
-  const { login, signup } = useUser();
+  const { login, signup, loading } = useUser();
   const navigate = useNavigate();
 
   const [signingUp, setSigningUp] = useState(false);
 
   const [username, setUsername] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
@@ -24,6 +26,7 @@ const Home: React.FC = () => {
         const normalizedSex = sex.trim().toLowerCase();
         await signup({
           username,
+          name,
           password,
           height: height.trim() === "" ? null : Number(height),
           weight: weight.trim() === "" ? null : Number(weight),
@@ -38,7 +41,12 @@ const Home: React.FC = () => {
       }
       navigate("/dashboard");
     } catch (error) {
-      console.log(error);
+      console.error(error);
+      alertUser(
+        signingUp
+          ? "You could not be signed up. Please check your information."
+          : "You could not be logged in. Please check your username and password.",
+      );
     }
   };
 
@@ -64,16 +72,16 @@ const Home: React.FC = () => {
           </div>
           <h3 className="input-title">Username</h3>
           <input
-            className="login-input"
+            className="text-input"
             type="text"
-            placeholder="Usernane"
+            placeholder="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
           />
           <h3 className="input-title">Password</h3>
           <input
-            className="login-input"
+            className="text-input"
             type="password"
             placeholder="Password"
             value={password}
@@ -82,9 +90,18 @@ const Home: React.FC = () => {
           />
           {signingUp && (
             <>
+              <h3 className="input-title">Name</h3>
+              <input
+                className="text-input"
+                type="text"
+                placeholder="Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
               <h3 className="input-title">Height</h3>
               <input
-                className="login-input"
+                className="text-input"
                 type="text"
                 placeholder="Height"
                 value={height}
@@ -93,7 +110,7 @@ const Home: React.FC = () => {
               />
               <h3 className="input-title">Weight</h3>
               <input
-                className="login-input"
+                className="text-input"
                 type="text"
                 placeholder="Weight"
                 value={weight}
@@ -102,7 +119,7 @@ const Home: React.FC = () => {
               />
               <h3 className="input-title">Sex</h3>
               <input
-                className="login-input"
+                className="text-input"
                 type="text"
                 placeholder="Sex"
                 value={sex}
@@ -111,7 +128,7 @@ const Home: React.FC = () => {
               />
               <h3 className="input-title">Age</h3>
               <input
-                className="login-input"
+                className="text-input"
                 type="text"
                 placeholder="Age"
                 value={age}
@@ -120,8 +137,12 @@ const Home: React.FC = () => {
               />
             </>
           )}
-          <button className="login-button" onClick={onGoClick}>
-            Go
+          <button
+            disabled={loading}
+            className="login-button login-submit"
+            onClick={onGoClick}
+          >
+            {loading ? (signingUp ? "Signing up..." : "Logging in...") : "Go"}
           </button>
         </div>
         <h2 className="home-catch">Consent and Privacy for Athletes!!</h2>

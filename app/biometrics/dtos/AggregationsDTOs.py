@@ -57,3 +57,12 @@ class GraphResponseDTO(IntervalData):
 
     x: list[datetime] = Field(description="x values of datetimes for graph")
     y: list[float] = Field(description="y values of floats for graph")
+
+
+class BiometricsUploadResponseDTO(BaseModel):
+    """Response object for a biometric data upload."""
+
+    detail: str
+    code: int
+    inserted: int = Field(description="Number of new rows inserted")
+    duplicates: int = Field(description="Number of duplicate rows skipped")
