@@ -2,7 +2,7 @@
 
 A platform focused on providing athletes with autonomy over the biometric data collected by their wearables.
 
-# Quick Start
+## Quick Start
 
 Set up your virtual environment: python -m venv .venv
 
@@ -13,6 +13,12 @@ Ensure docker is downloaded and running
 To run development setup: make dev
 
 View API docs at http://localhost:8000/api/v1/docs
+
+## Conventions
+
+### DTOs
+
+Naming: `[verb][resource][adjective]`
 
 ## CLI Commands
 

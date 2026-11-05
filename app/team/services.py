@@ -6,8 +6,11 @@ from sqlalchemy import and_, desc, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.dependencies import CurrentUserDep
 from app.core.database import DBErrors
 from app.core.dependencies import AsyncSessionDep
+from app.team.dtos.member_dsp_dto import MembershipDspDTO
+from app.team.dtos.team_dsr_dto import TeamDsrDTO
 from app.team.dtos.team_dto import CreateTeamDTO, MyTeamDTO, UpdateTeamDTO
 from app.team.dtos.team_membership_dto import (
     CreateTeamMembershipDTO,
@@ -221,16 +224,39 @@ async def get_team_membership_by_id(
     return membership
 
 
-async def _create_team_membership(
+async def get_user_team_membership(
+    db: AsyncSessionDep,
+    team: Annotated[Team, Depends(get_team_by_id)],
+    user: CurrentUserDep,
+):
+    """Get a user's membership within a team"""
+
+    rows = await db.execute(
+        select(TeamMembership).where(
+            and_(TeamMembership.team_id == team.id, TeamMembership.user_id == user.id)
+        )
+    )
+    membership = rows.scalar_one_or_none()
+
+    if membership is None:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            detail=f"User is not a member of the team with id {team.id}",
+        )
+
+    return membership
+
+
+async def create_team_membership(
     db: AsyncSession,
     team: Team,
-    user_id: int,
-    membership_status: TeamMembershipStatusType,
+    body: CreateTeamMembershipDTO,
+    membership_status: TeamMembershipStatusType = TeamMembershipStatusType.APPROVE,
 ):
-    """Create a team membership with an explicit status"""
+    """Create a team membership"""
 
     membership = TeamMembership(
-        user_id=user_id, team_id=team.id, status=membership_status
+        **body.model_dump(), team_id=team.id, status=membership_status
     )
     db.add(membership)
 
@@ -252,7 +278,7 @@ async def _create_team_membership(
                 errors=[
                     {
                         "loc": ["body", "user_id"],
-                        "msg": f"No user exists with id {user_id}",
+                        "msg": f"No user exists with id {body.user_id}",
                         "type": "value_error",
                     }
                 ]
@@ -261,16 +287,6 @@ async def _create_team_membership(
         raise e
 
     return membership
-
-
-async def create_team_membership(
-    db: AsyncSession, team: Team, body: CreateTeamMembershipDTO
-):
-    """Create an approved team membership"""
-
-    return await _create_team_membership(
-        db, team, body.user_id, TeamMembershipStatusType.APPROVE
-    )
 
 
 async def create_team_membership_request(
@@ -287,8 +303,11 @@ async def create_team_membership_request(
             detail=f"User not found for username {body.username}",
         )
 
-    return await _create_team_membership(
-        db, team, user.id, TeamMembershipStatusType.PENDING
+    return await create_team_membership(
+        db,
+        team,
+        body=CreateTeamMembershipDTO(user_id=user.id),
+        membership_status=TeamMembershipStatusType.PENDING,
     )
 
 
@@ -316,3 +335,42 @@ async def delete_team_membership(db: AsyncSession, membership: TeamMembership):
     await db.flush()
 
     return membership
+
+
+# -------------------------------
+# DSRs
+# -------------------------------
+
+
+def get_effective_team_dsr(team: Team):
+    """Get the data sharing requirements for a team"""
+
+    return TeamDsrDTO(team_id=team.id, **getattr(team.dsr, "content", {}))
+
+
+# -------------------------------
+# DSPs
+# -------------------------------
+
+
+def get_effective_membership_dsp(membership: TeamMembership):
+    """Get the the data sharing policy used to permissions"""
+
+    membership_dsp = getattr(membership.dsp, "content", {})
+    team_dsr = getattr(membership.team.dsr, "content", {})
+
+    # Create policy from member settings, team requirements, and global defaults
+    merged_policy = {**team_dsr, **membership_dsp}
+    effective_policy = MembershipDspDTO(**merged_policy, membership_id=membership.id)
+
+    # Check for invalid fields
+    for field, required_value in team_dsr.items():
+        policy_value = membership_dsp.get(field, None)
+
+        if policy_value is None:
+            continue
+
+        if policy_value != required_value:
+            effective_policy.invalid_fields.append(field)
+
+    return effective_policy
