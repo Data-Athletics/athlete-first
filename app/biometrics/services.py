@@ -16,6 +16,8 @@ from app.biometrics.dtos.MetricsDTOs import BoolMetricType
 from app.biometrics.models import HeartRate
 from app.biometrics.types import NoopData
 from app.core.dependencies import AsyncSessionDep
+from app.core.dtos import PermissionDeniedReason
+from app.core.exceptions import PermissionException
 from app.core.sql_loader import load_sql
 from app.team.models import MembershipDsp, Team, TeamDsr, TeamMembership, TeamRoleType
 from app.team.services import get_effective_membership_dsp
@@ -93,8 +95,8 @@ async def _can_access_metric(
         need_dsps = [m for m in memberships if m.dsp is None]
 
         if len(need_dsps) > 0:
-            raise HTTPException(
-                status.HTTP_403_FORBIDDEN,
+            raise PermissionException(
+                reason=PermissionDeniedReason.NULL_POLICY,
                 detail=(
                     f"There are still {len(need_dsps)} data sharing "
                     f"{'policy' if len(need_dsps) == 1 else 'policies'} "
@@ -110,8 +112,8 @@ async def _can_access_metric(
                 invalid_memberships.append(str(membership.id))
 
         if len(invalid_memberships) > 0:
-            raise HTTPException(
-                status.HTTP_403_FORBIDDEN,
+            raise PermissionException(
+                reason=PermissionDeniedReason.INVALID_POLICY,
                 detail=(
                     f"The policies for memberships [{','.join(invalid_memberships)}] need to be reviewed"
                 ),
@@ -195,12 +197,15 @@ async def _can_access_metric(
 
         if not can_access:
             # Access to read this user has already been established, so 403 can be returned
-            raise HTTPException(
-                status.HTTP_403_FORBIDDEN,
-                detail=f"No access policy allows user with id '{requestor.id}' to access bpm of user with id '{target_user_id}'",
+            raise PermissionException(
+                reason=PermissionDeniedReason.POLICY_RESTRICTION,
+                detail=(
+                    f"No access policy allows user with id '{requestor.id}' "
+                    "to access bpm of user with id '{target_user_id}'"
+                ),
             )
         else:
-            print("Matched memberships:", matched_membership)
+            print("Matched memberships:", [m.id for m in matched_membership])
 
     return True
 

@@ -5,6 +5,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.biometrics.dtos.MetricsDTOs import BOOL_METRICS, BoolMetricType
+from app.core.dtos import PermissionDeniedReason
 from app.team.models import MembershipDsp, Team, TeamDsr, TeamMembership, TeamRoleType
 from app.user.models import User
 from tests.auth.utils import create_test_user_token
@@ -252,6 +253,9 @@ async def test_dsp_bool_metrics_access(
         f"/biometrics/{metrics_access_data.u1.id}/{metric_slug}"
     )
     assert res.status_code == 403
+    data = res.json()
+    print('data:', data)
+    assert res.json()["reason"] == PermissionDeniedReason.POLICY_RESTRICTION
 
     # Coach can still see other metrics
     if metric != "calories":
@@ -296,6 +300,7 @@ async def test_dsr_metrics_access(
         f"/biometrics/{metrics_access_data.u2.id}/{metric_slug}"
     )
     assert res.status_code == 403
+    assert res.json()["reason"] == PermissionDeniedReason.POLICY_RESTRICTION
 
     # Coach can still see other metrics
     if metric != "calories":
@@ -328,6 +333,7 @@ async def test_null_dsp_access(
         f"/biometrics/{metrics_access_data.cu.id}/{metric_slug}"
     )
     assert res.status_code == 403
+    assert res.json()["reason"] == PermissionDeniedReason.NULL_POLICY
 
 
 @pytest.mark.parametrize("metric", BOOL_METRICS)
@@ -358,13 +364,16 @@ async def test_invalid_dsp_by_dsr(
         f"/biometrics/{metrics_access_data.cu.id}/{metric_slug}"
     )
     assert res.status_code == 403
+    assert res.json()["reason"] == PermissionDeniedReason.INVALID_POLICY
 
     if metric != "calories":
         res = await user_client.get(f"/biometrics/{metrics_access_data.cu.id}/calories")
         assert res.status_code == 403
+        assert res.json()["reason"] == PermissionDeniedReason.INVALID_POLICY
     else:
         res = await user_client.get(f"/biometrics/{metrics_access_data.cu.id}/bpm")
         assert res.status_code == 403
+        assert res.json()["reason"] == PermissionDeniedReason.INVALID_POLICY
 
     # The coach should not be able to see this metric
     u4_token = create_test_user_token(metrics_access_data.u4)
@@ -373,6 +382,7 @@ async def test_invalid_dsp_by_dsr(
         headers={"Authorization": f"Bearer {u4_token}"},
     )
     assert res.status_code == 403
+    assert res.json()["reason"] == PermissionDeniedReason.POLICY_RESTRICTION
 
     # But the coach should be able to see other metrics
     if metric != "calories":
