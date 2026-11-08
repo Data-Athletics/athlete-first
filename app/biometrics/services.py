@@ -18,6 +18,7 @@ from app.biometrics.types import NoopData
 from app.core.dependencies import AsyncSessionDep
 from app.core.sql_loader import load_sql
 from app.team.models import MembershipDsp, Team, TeamDsr, TeamMembership, TeamRoleType
+from app.team.services import get_effective_membership_dsp
 from app.user.models import User
 
 SQL_DIRECTORY = Path(__file__).parent / "sql"
@@ -79,7 +80,44 @@ async def _can_access_metric(
     check_policy = f"{metric}_shared"
 
     # Check if some other user (non-admin) is trying to access this data
-    if requestor.id != target_user_id and not requestor.is_admin:
+    if requestor.is_admin:
+        return True
+    elif requestor.id == target_user_id:
+        query = select(TeamMembership).where(
+            and_(TeamMembership.user_id == requestor.id)
+        )
+        rows = await db.execute(query)
+        memberships = list(rows.scalars())
+
+        # Users can view their own data as long as all of their memberships have dsps
+        need_dsps = [m for m in memberships if m.dsp is None]
+
+        if len(need_dsps) > 0:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                detail=(
+                    f"There are still {len(need_dsps)} data sharing "
+                    f"{'policy' if len(need_dsps) == 1 else 'policies'} "
+                    "that need confirmation"
+                ),
+            )
+
+        # Get list of memberships with dsps and dsrs set
+        invalid_memberships: list[str] = []
+        for membership in memberships:
+            effective_mem = get_effective_membership_dsp(membership)
+            if len(effective_mem.invalid_fields) > 0:
+                invalid_memberships.append(str(membership.id))
+
+        if len(invalid_memberships) > 0:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                detail=(
+                    f"The policies for memberships [{','.join(invalid_memberships)}] need to be reviewed"
+                ),
+            )
+
+    else:
         # Get a list of teams with both users and where current user is coach
         team_subquery = select(Team.id).where(
             and_(
@@ -116,7 +154,7 @@ async def _can_access_metric(
 
         # Check if a membership exists for the target in the teams queried above (as a subquery),
         # and where the policy is resolved in this order of precedence: dsp -> dsr -> True
-        access_query = select(TeamMembership.id).where(
+        access_query = select(TeamMembership).where(
             and_(
                 TeamMembership.team_id.in_(team_subquery),
                 TeamMembership.user_id == target_user_id,
@@ -262,9 +300,7 @@ async def skin_temp_delta(
     """Calculates skin temp delta for a user using today's median and the past 7 days values, not including today"""
 
     # Check if the current user can see the metric
-    await _can_access_metric(
-        db, requestor, target_user.id, metric="skin_temp_delta"
-    )
+    await _can_access_metric(db, requestor, target_user.id, metric="skin_temp_delta")
 
     # Then compute the metric
     query = text(load_sql(SQL_DIRECTORY, "skin_temperature_delta.sql"))
@@ -283,9 +319,7 @@ async def respiratory_rate(
         float: beats/minute
     """
     # Check if the current user can see the metric
-    await _can_access_metric(
-        db, requestor, target_user.id, metric="respiratory_rate"
-    )
+    await _can_access_metric(db, requestor, target_user.id, metric="respiratory_rate")
 
     # Then compute the metric
     query = text(load_sql(SQL_DIRECTORY, "respiratory_rate.sql"))

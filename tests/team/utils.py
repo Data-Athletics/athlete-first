@@ -4,6 +4,7 @@ from app.core.faker import fake
 from app.team.models import (
     MembershipDsp,
     Team,
+    TeamDsr,
     TeamMembership,
     TeamMembershipStatusType,
 )
@@ -15,6 +16,7 @@ async def create_test_team(
     user_ids: list[int] | None = None,
     users: list[User] | None = None,
     create_dsps: bool = False,
+    create_dsr: bool = False,
     **kwargs,
 ):
     """Create mock team for testing"""
@@ -48,6 +50,10 @@ async def create_test_team(
         if create_dsps:
             mem_dsps = [MembershipDsp(membership_id=m.id) for m in mems]
             db.add_all(mem_dsps)
+
+        if create_dsr:
+            dsr = TeamDsr(team_id=team.id)
+            db.add(dsr)
 
         await db.commit()
         await db.refresh(team)
