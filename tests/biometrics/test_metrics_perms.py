@@ -26,7 +26,7 @@ class MetricsAccessData:
     u3: User
     u4: User
 
-    # Memberships
+    # Memberships & DSPs
     cu_mem1: TeamMembership
     """Coach"""
     cu_mem2: TeamMembership
@@ -79,8 +79,10 @@ class MetricsAccessData:
 async def setup_metrics_access_data(db: AsyncSession, current_user: User):
     """Setup team data for data access"""
 
+    # Users
     u1, u2, u3, u4 = await create_test_users(db, count=4)
 
+    # Teams
     team1 = await create_test_team(
         db, create_dsps=True, user_ids=[current_user.id, u1.id, u2.id]
     )
@@ -91,6 +93,7 @@ async def setup_metrics_access_data(db: AsyncSession, current_user: User):
         db, create_dsps=True, user_ids=[current_user.id, u4.id]
     )
 
+    # Combine test data
     data = MetricsAccessData(
         team1=team1,
         team2=team2,
@@ -109,13 +112,45 @@ async def setup_metrics_access_data(db: AsyncSession, current_user: User):
         u4_mem3=next(m for m in team3.memberships if m.user_id == u4.id),
     )
 
-    # Make current user a coach of team 1
+    # Make current user a coach of team 1 & 2, but not 3
     data.cu_mem1.role = TeamRoleType.COACH
     data.cu_mem2.role = TeamRoleType.COACH
     db.add_all([data.cu_mem1, data.cu_mem2])
     await db.commit()
 
     return data
+
+
+@pytest.mark.parametrize("metric", BOOL_METRICS)
+async def test_admin_access_metrics(
+    metric: BoolMetricType,
+    admin_client: AsyncClient,
+    current_admin: User,
+    metrics_access_data: MetricsAccessData,
+):
+    """Admins should be able to access all metrics"""
+
+    metric_slug = metric.replace("_", "-")
+
+    res = await admin_client.get(
+        f"/biometrics/{metrics_access_data.u1.id}/{metric_slug}"
+    )
+    assert res.status_code == 200
+
+    res = await admin_client.get(
+        f"/biometrics/{metrics_access_data.u2.id}/{metric_slug}"
+    )
+    assert res.status_code == 200
+
+    res = await admin_client.get(
+        f"/biometrics/{metrics_access_data.u3.id}/{metric_slug}"
+    )
+    assert res.status_code == 200
+
+    res = await admin_client.get(
+        f"/biometrics/{metrics_access_data.u4.id}/{metric_slug}"
+    )
+    assert res.status_code == 200
 
 
 @pytest.mark.parametrize("metric", BOOL_METRICS)
@@ -224,3 +259,11 @@ async def test_dsr_metrics_access(
         f"/biometrics/{metrics_access_data.u2.id}/{metric_slug}"
     )
     assert res.status_code == 403
+
+    # Coach can still see other metrics
+    if metric != "calories":
+        res = await user_client.get(f"/biometrics/{metrics_access_data.u1.id}/calories")
+        assert res.status_code == 200
+    else:
+        res = await user_client.get(f"/biometrics/{metrics_access_data.u1.id}/bpm")
+        assert res.status_code == 200

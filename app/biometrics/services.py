@@ -78,8 +78,9 @@ async def _can_access_metric(
 
     check_policy = f"{metric}_shared"
 
-    if requestor.id != target_user_id:
-        # Some other user is trying to access this data
+    # Check if some other user (non-admin) is trying to access this data
+    if requestor.id != target_user_id and not requestor.is_admin:
+        # Get a list of teams with both users and where current user is coach
         team_subquery = select(Team.id).where(
             and_(
                 # requestor is coach
@@ -103,16 +104,23 @@ async def _can_access_metric(
                 ),
             )
         )
+
+        # Get the metric from dsp/dsr or default to null,
+        # store it as sql label to use in query
         dsp_policy_label = func.coalesce(
             MembershipDsp.content[check_policy], None
         ).label("dsp_policy")
         dsr_policy_label = func.coalesce(TeamDsr.content[check_policy], None).label(
             "dsr_policy"
         )
+
+        # Check if a membership exists for the target in the teams queried above (as a subquery),
+        # and where the policy is resolved in this order of precedence: dsp -> dsr -> True
         access_query = select(TeamMembership.id).where(
             and_(
                 TeamMembership.team_id.in_(team_subquery),
                 TeamMembership.user_id == target_user_id,
+                # Check if dsp is not False
                 exists(
                     select(dsp_policy_label).where(
                         and_(
@@ -124,6 +132,7 @@ async def _can_access_metric(
                         )
                     )
                 ),
+                # Check if dsr exists or is not false
                 or_(
                     not_(
                         exists(TeamDsr).where(TeamDsr.team_id == TeamMembership.team_id)
@@ -147,6 +156,7 @@ async def _can_access_metric(
         can_access = len(matched_membership) > 0
 
         if not can_access:
+            # Access to read this user has already been established, so 403 can be returned
             raise HTTPException(
                 status.HTTP_403_FORBIDDEN,
                 detail=f"No access policy allows user with id '{requestor.id}' to access bpm of user with id '{target_user_id}'",
@@ -154,7 +164,7 @@ async def _can_access_metric(
         else:
             print("Matched memberships:", matched_membership)
 
-        return True
+    return True
 
 
 async def calculate_hrv(
@@ -252,7 +262,9 @@ async def skin_temp_delta(
     """Calculates skin temp delta for a user using today's median and the past 7 days values, not including today"""
 
     # Check if the current user can see the metric
-    await _can_access_metric(db, requestor, target_user.id, metric="skin_temp_delta")
+    await _can_access_metric(
+        db, requestor, target_user.id, metric="skin_temp_delta"
+    )
 
     # Then compute the metric
     query = text(load_sql(SQL_DIRECTORY, "skin_temperature_delta.sql"))
@@ -271,7 +283,9 @@ async def respiratory_rate(
         float: beats/minute
     """
     # Check if the current user can see the metric
-    await _can_access_metric(db, requestor, target_user.id, metric="respiratory_rate")
+    await _can_access_metric(
+        db, requestor, target_user.id, metric="respiratory_rate"
+    )
 
     # Then compute the metric
     query = text(load_sql(SQL_DIRECTORY, "respiratory_rate.sql"))
