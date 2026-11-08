@@ -1,7 +1,12 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.faker import fake
-from app.team.models import Team, TeamMembership, TeamMembershipStatusType
+from app.team.models import (
+    MembershipDsp,
+    Team,
+    TeamMembership,
+    TeamMembershipStatusType,
+)
 from app.user.models import User
 
 
@@ -9,6 +14,7 @@ async def create_test_team(
     db: AsyncSession | None = None,
     user_ids: list[int] | None = None,
     users: list[User] | None = None,
+    create_dsps: bool = False,
     **kwargs,
 ):
     """Create mock team for testing"""
@@ -37,11 +43,11 @@ async def create_test_team(
             for user_id in user_ids
         ]
         db.add_all(mems)
-        # await db.flush()
+        await db.flush()
 
-        # # Add policies
-        # dsps = [MembershipDsp(membership_id=mem.id) for mem in mems]
-        # db.add_all(dsps)
+        if create_dsps:
+            mem_dsps = [MembershipDsp(membership_id=m.id) for m in mems]
+            db.add_all(mem_dsps)
 
         await db.commit()
         await db.refresh(team)

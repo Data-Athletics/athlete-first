@@ -1,10 +1,11 @@
 from datetime import datetime
+from typing import Annotated
 
 import sqlalchemy
 import sqlalchemy.exc
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import CurrentUserDep, get_current_user
 from app.biometrics.decoder import decode_noop_csv
 from app.biometrics.dtos.AggregationsDTOs import (
     BiometricsUploadResponseDTO,
@@ -16,6 +17,7 @@ from app.biometrics.dtos.AggregationsDTOs import (
     RHRResponseDTO,
     SkinTempDeltaResponseDTO,
 )
+from app.biometrics.dtos.MetricsDTOs import MetricsFilterDTO
 from app.biometrics.services import (
     bulk_bpm_data,
     bulk_upload_noop_data,
@@ -67,22 +69,36 @@ async def create_biometrics_route(
 
 @biometrics_router.get("/{user_id}/hrv", response_model=HRVResponseDTO)
 async def get_hrv_from_end_time(
-    db: AsyncSessionDep, user: UserByIdDep, end_time: datetime
+    db: AsyncSessionDep,
+    current_user: CurrentUserDep,
+    user: UserByIdDep,
+    end_time: Annotated[datetime, Query(default_factory=datetime.now)],
 ):
     """Get a user's HRV value over the previous two months."""
 
-    hrv, start, end = await calculate_hrv(db, user.id, end_time)
+    hrv, start, end = await calculate_hrv(
+        db, requestor=current_user, target_user=user, end_time=end_time
+    )
 
     return HRVResponseDTO(hrv=hrv, start=start, end=end)
 
 
 @biometrics_router.get("/{user_id}/rhr", response_model=RHRResponseDTO)
 async def get_rhr_from_start_and_end_time(
-    db: AsyncSessionDep, user: UserByIdDep, start_time: datetime, end_time: datetime
+    db: AsyncSessionDep,
+    current_user: CurrentUserDep,
+    user: UserByIdDep,
+    filters: Annotated[MetricsFilterDTO, Query()],
 ):
     """Get a user's rhr value over an interval (10 minute bins)"""
 
-    rhr, start, end = await rhr_over_interval(db, user.id, start_time, end_time)
+    rhr, start, end = await rhr_over_interval(
+        db,
+        requestor=current_user,
+        target_user=user,
+        start_time=filters.start_time,
+        end_time=filters.end_time,
+    )
 
     return RHRResponseDTO(rhr=rhr, start=start, end=end)
 
@@ -90,10 +106,12 @@ async def get_rhr_from_start_and_end_time(
 @biometrics_router.get(
     "/{user_id}/skin-temp-delta", response_model=SkinTempDeltaResponseDTO
 )
-async def get_skin_temp_delta(db: AsyncSessionDep, user: UserByIdDep):
+async def get_skin_temp_delta(
+    db: AsyncSessionDep, current_user: CurrentUserDep, user: UserByIdDep
+):
     """Get a user's skin temperature delta."""
 
-    delta = await skin_temp_delta(db, user.id)
+    delta = await skin_temp_delta(db, requestor=current_user, target_user=user)
 
     return SkinTempDeltaResponseDTO(skin_temp_delta=delta)
 
@@ -102,68 +120,54 @@ async def get_skin_temp_delta(db: AsyncSessionDep, user: UserByIdDep):
     "/{user_id}/respiratory-rate", response_model=RespiratoryRateResponseDTO
 )
 async def get_respiratory_rate(
-    user: UserByIdDep, db: AsyncSessionDep
+    db: AsyncSessionDep, current_user: CurrentUserDep, user: UserByIdDep
 ) -> RespiratoryRateResponseDTO:
     """Get a user's respiratory rate value."""
 
-    rate = await respiratory_rate(db, user.id)
+    rate = await respiratory_rate(db, requestor=current_user, target_user=user)
 
     return RespiratoryRateResponseDTO(respiratory_rate=rate)
 
 
 @biometrics_router.get("/{user_id}/effort", response_model=EffortStrainResponseDTO)
 async def get_effort_strain(
-    user: UserByIdDep, db: AsyncSessionDep
+    db: AsyncSessionDep, current_user: CurrentUserDep, user: UserByIdDep
 ) -> EffortStrainResponseDTO:
     """Get a user's effort/strain value."""
 
-    effort = await calculate_effort_strain(db, user.id)
+    effort = await calculate_effort_strain(db, requestor=current_user, target_user=user)
 
     return EffortStrainResponseDTO(effort=effort)
 
 
 @biometrics_router.get("/{user_id}/calories", response_model=CaloriesResponseDTO)
 async def get_calories(
-    db: AsyncSessionDep, user_id: int, user: UserByIdDep
+    db: AsyncSessionDep, current_user: CurrentUserDep, user: UserByIdDep
 ) -> CaloriesResponseDTO:
     """Get a user's estimated calories."""
 
-    if user_id != user.id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User is not authorized to access this data.",
-        )
-
-    if (
-        user.height is None
-        or user.weight is None
-        or user.sex is None
-        or user.age is None
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must have all of height, weight, sex, and age to calculate calories.",
-        )
-
-    calories = await calculate_calories(db, user.id)
+    calories = await calculate_calories(db, requestor=current_user, target_user=user)
 
     return CaloriesResponseDTO(calories=calories)
 
 
 @biometrics_router.get("/{user_id}/bpm", response_model=GraphResponseDTO)
 async def get_bpm_from_start_and_end_time(
-    db: AsyncSessionDep, user: UserByIdDep, start_time: datetime, end_time: datetime
+    db: AsyncSessionDep,
+    current_user: CurrentUserDep,
+    user: UserByIdDep,
+    filters: Annotated[MetricsFilterDTO, Query()],
 ):
     """Get a user's bpm data over an interval"""
 
-    if start_time > end_time:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Data start time must be less than end time.",
-        )
-
     try:
-        return await bulk_bpm_data(db, user.id, start_time, end_time)
+        return await bulk_bpm_data(
+            db,
+            requestor=current_user,
+            target_user=user,
+            start_time=filters.start_time,
+            end_time=filters.end_time,
+        )
     except sqlalchemy.exc.NoReferencedTableError as e:
         if "user_id" in str(e):
             raise HTTPException(
