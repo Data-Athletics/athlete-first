@@ -2,14 +2,20 @@ import type React from "react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { SingleValue } from "react-select";
+import DataSharingPolicyEditor from "../components/DataSharingPolicyEditor";
+import DataSharingRequirementsList from "../components/DataSharingRequirementsList";
+import MetricRequestEditor from "../components/MetricRequestEditor";
 import Request from "../components/Request";
 import SelectInput from "../components/SelectInput";
 import { useTeam } from "../contexts/team/TeamContext";
 import { useUser } from "../contexts/user/UserContext";
 import Nav from "../Nav";
-import type { Option, Team, TeamMember } from "../types/Team";
+import type { DataSharingValues, Option, Team, TeamMember } from "../types/Team";
 import { alertUser } from "../utils/alerts";
+import { getPolicyAcceptancePayload } from "../utils/dataSharing";
 import "./Team.css";
+
+type TeamSectionKey = "teams" | "requests" | "metrics";
 
 const TeamPage: React.FC = () => {
   const navigate = useNavigate();
@@ -24,6 +30,11 @@ const TeamPage: React.FC = () => {
     teamMembershipRequests,
     updateTeamMembershipStatus,
     deleteTeamMembership,
+    dataSharingRequirements,
+    dataSharingPolicies,
+    dataSharingLoading,
+    updateTeamDataSharingRequirements,
+    updateMembershipDataSharingPolicy,
   } = useTeam();
 
   const [username, setUsername] = useState("");
@@ -33,10 +44,36 @@ const TeamPage: React.FC = () => {
   const [teamMembers, setTeamMembers] = useState<Record<number, TeamMember[]>>(
     {},
   );
+  const [openSections, setOpenSections] = useState<
+    Record<TeamSectionKey, boolean>
+  >({ teams: true, requests: true, metrics: true });
+  const [selectedPolicyTeamId, setSelectedPolicyTeamId] = useState<number | null>(
+    null,
+  );
   const requestTeamOptions = teamsOptions;
   const acceptedTeams = myTeams.filter(
     ({ membership }) => membership.status === "approve",
   );
+  const metricRequests = acceptedTeams.filter(({ id, membership }) => {
+    if (user?.is_staff || membership.role !== "athlete") return false;
+
+    const policy = dataSharingPolicies[id];
+    return policy === null || policy === undefined || policy.invalid_fields.length > 0;
+  });
+  const athleteTeams = acceptedTeams.filter(
+    ({ membership }) => membership.role === "athlete",
+  );
+  const activePolicyTeamId =
+    selectedPolicyTeamId ?? athleteTeams[0]?.id ?? null;
+  const activePolicyTeam =
+    athleteTeams.find(({ id }) => id === activePolicyTeamId) ?? null;
+
+  const toggleSection = (section: TeamSectionKey) => {
+    setOpenSections((current) => ({
+      ...current,
+      [section]: !current[section],
+    }));
+  };
 
   useEffect(() => {
     if (!user?.is_staff) return;
@@ -117,6 +154,78 @@ const TeamPage: React.FC = () => {
     }
   };
 
+  const onAcceptTeamRequest = async (
+    teamId: number,
+    membershipId: number,
+  ) => {
+    const actionKey = `accept:${teamId}:${membershipId}`;
+    setLoadingAction(actionKey);
+    try {
+      await updateMembershipDataSharingPolicy(
+        teamId,
+        getPolicyAcceptancePayload(
+          dataSharingRequirements[teamId],
+          dataSharingPolicies[teamId],
+        ),
+      );
+      await updateTeamMembershipStatus(teamId, membershipId, "approve");
+      alertUser("Team request accepted and metrics sharing confirmed.");
+    } catch (error) {
+      console.error(error);
+      alertUser("Team request could not be accepted.");
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const onAcceptMetricRequest = async (teamId: number) => {
+    const actionKey = `metrics:${teamId}`;
+    setLoadingAction(actionKey);
+    try {
+      await updateMembershipDataSharingPolicy(
+        teamId,
+        getPolicyAcceptancePayload(
+          dataSharingRequirements[teamId],
+          dataSharingPolicies[teamId],
+        ),
+      );
+      alertUser("Metric request accepted.");
+    } catch (error) {
+      console.error(error);
+      alertUser("Metric request could not be accepted.");
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const onSaveAthletePolicy = async (
+    teamId: number,
+    policy: DataSharingValues,
+  ) => {
+    try {
+      await updateMembershipDataSharingPolicy(teamId, policy);
+      alertUser("Your sharing policy was updated.");
+    } catch (error) {
+      console.error(error);
+      alertUser("Your sharing policy could not be updated.");
+      throw error;
+    }
+  };
+
+  const onSaveMetricRequest = async (
+    teamId: number,
+    requirements: DataSharingValues,
+  ) => {
+    try {
+      await updateTeamDataSharingRequirements(teamId, requirements);
+      alertUser("Metric request updated for the team.");
+    } catch (error) {
+      console.error(error);
+      alertUser("Metric request could not be updated.");
+      throw error;
+    }
+  };
+
   const onDeleteRequest = async (teamId: number, membershipId: number) => {
     const actionKey = `delete:${teamId}:${membershipId}`;
     setLoadingAction(actionKey);
@@ -159,8 +268,22 @@ const TeamPage: React.FC = () => {
           <h1 className="page-header">Team</h1>
         </div>
         <div className="team-sections">
-          <section className="team-section team-list-section">
-            <h2>Your Teams</h2>
+          <section
+            className={`team-section team-accordion team-list-section${
+              openSections.teams ? " is-open" : ""
+            }`}
+          >
+            <button
+              className="team-section-toggle"
+              type="button"
+              aria-expanded={openSections.teams}
+              onClick={() => toggleSection("teams")}
+            >
+              <span className="team-section-toggle-title">Your Teams</span>
+              <span className="team-section-toggle-icon" aria-hidden="true" />
+            </button>
+            <div className="team-section-panel">
+              <div className="team-section-panel-inner">
             {acceptedTeams.length === 0 ? (
               <p>No teams at this time.</p>
             ) : (
@@ -197,7 +320,16 @@ const TeamPage: React.FC = () => {
                           ))
                         )
                       ) : (
-                        <span>{membership.role}</span>
+                        <>
+                          <span>{membership.role}</span>
+                          {(dataSharingPolicies[id] === null ||
+                            dataSharingPolicies[id] === undefined ||
+                            dataSharingPolicies[id]?.invalid_fields.length > 0) && (
+                            <span className="data-sharing-alert">
+                              Data sharing needs your attention
+                            </span>
+                          )}
+                        </>
                       )}
                     </div>
                     {!user?.is_staff && (
@@ -216,10 +348,26 @@ const TeamPage: React.FC = () => {
                 );
               })
             )}
+              </div>
+            </div>
           </section>
 
-          <section className="team-section team-requests-section">
-            <h2>Team Requests</h2>
+          <section
+            className={`team-section team-accordion team-requests-section${
+              openSections.requests ? " is-open" : ""
+            }`}
+          >
+            <button
+              className="team-section-toggle"
+              type="button"
+              aria-expanded={openSections.requests}
+              onClick={() => toggleSection("requests")}
+            >
+              <span className="team-section-toggle-title">Team Requests</span>
+              <span className="team-section-toggle-icon" aria-hidden="true" />
+            </button>
+            <div className="team-section-panel">
+              <div className="team-section-panel-inner">
             {user?.is_staff && (
               <div className="team-request-form">
                 <h3 className="input-title">Username</h3>
@@ -265,11 +413,13 @@ const TeamPage: React.FC = () => {
                   request={request}
                   isStaff={Boolean(user?.is_staff)}
                   onAccept={() =>
-                    onUpdateRequestStatus(
-                      request.team_id,
-                      request.id,
-                      "approve",
-                    )
+                    user?.is_staff
+                      ? onUpdateRequestStatus(
+                          request.team_id,
+                          request.id,
+                          "approve",
+                        )
+                      : onAcceptTeamRequest(request.team_id, request.id)
                   }
                   onReject={() =>
                     onUpdateRequestStatus(
@@ -289,14 +439,130 @@ const TeamPage: React.FC = () => {
                           | "delete")
                       : null
                   }
+                  requirements={dataSharingRequirements[request.team_id]}
+                  policy={dataSharingPolicies[request.team_id]}
                 />
               ))
             )}
+              </div>
+            </div>
           </section>
 
-          <section className="team-section">
-            <h2>Metrics Requests</h2>
-            <p>No requests at this time.</p>
+          <section
+            className={`team-section team-accordion metrics-requests-section${
+              openSections.metrics ? " is-open" : ""
+            }`}
+          >
+            <button
+              className="team-section-toggle"
+              type="button"
+              aria-expanded={openSections.metrics}
+              onClick={() => toggleSection("metrics")}
+            >
+              <span className="team-section-toggle-title">Metrics Requests</span>
+              <span className="team-section-toggle-icon" aria-hidden="true" />
+            </button>
+            <div className="team-section-panel">
+              <div className="team-section-panel-inner">
+            {dataSharingLoading ? (
+              <p>Loading...</p>
+            ) : user?.is_staff ? (
+              <MetricRequestEditor
+                teams={acceptedTeams}
+                requirements={dataSharingRequirements}
+                onSave={onSaveMetricRequest}
+              />
+            ) : (
+              <>
+                <div className="policy-editor-list">
+                  <div className="policy-editor-list-heading">
+                    <div>
+                      <h3>Your sharing policies</h3>
+                      <p>
+                        Required metrics stay enabled. You can change any other
+                        sharing choice at any time.
+                      </p>
+                    </div>
+                    <SelectInput
+                      className="policy-team-select"
+                      options={athleteTeams.map(({ id, name }) => ({
+                        value: String(id),
+                        label: name,
+                      }))}
+                      value={
+                        activePolicyTeam
+                          ? {
+                              value: String(activePolicyTeam.id),
+                              label: activePolicyTeam.name,
+                            }
+                          : null
+                      }
+                      onChange={(option) =>
+                        setSelectedPolicyTeamId(
+                          option ? Number(option.value) : null,
+                        )
+                      }
+                      placeholder="Select team..."
+                    />
+                  </div>
+                  {activePolicyTeam ? (
+                    <DataSharingPolicyEditor
+                      team={activePolicyTeam}
+                      requirements={dataSharingRequirements[activePolicyTeam.id]}
+                      policy={dataSharingPolicies[activePolicyTeam.id]}
+                      onSave={onSaveAthletePolicy}
+                    />
+                  ) : (
+                    <p>No approved teams have a sharing policy yet.</p>
+                  )}
+                </div>
+                <div className="metric-request-list">
+                  <h3>Requests to review</h3>
+                  {metricRequests.length === 0 ? (
+                    <p>No new metric requests at this time.</p>
+                  ) : (
+                    metricRequests.map(({ id, name }) => {
+                      const policy = dataSharingPolicies[id];
+                      const invalidFields = policy?.invalid_fields ?? [];
+                      const actionKey = `metrics:${id}`;
+
+                      return (
+                        <div className="metric-request-row request-row" key={id}>
+                          <div className="request-details">
+                            <span className="request-username">{name}</span>
+                            <span className="request-team">
+                              Confirm the metrics you share with this team.
+                            </span>
+                            {invalidFields.length > 0 && (
+                              <span className="data-sharing-alert">
+                                Review the fields marked below before accepting.
+                              </span>
+                            )}
+                            <DataSharingRequirementsList
+                              requirements={dataSharingRequirements[id]}
+                              invalidFields={invalidFields}
+                              policyAccepted={policy !== null && policy !== undefined}
+                            />
+                          </div>
+                          <div className="request-actions">
+                            <button
+                              disabled={loadingAction === actionKey}
+                              onClick={() => onAcceptMetricRequest(id)}
+                            >
+                              {loadingAction === actionKey
+                                ? "Accepting..."
+                                : "Accept metrics"}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </>
+            )}
+              </div>
+            </div>
           </section>
         </div>
       </div>

@@ -6,6 +6,9 @@ import type {
   TeamMembershipRequest,
   TeamMembershipStatus,
   MyTeam,
+  DataSharingValues,
+  MembershipDataSharingPolicy,
+  TeamDataSharingRequirements,
 } from "../../types/Team";
 
 export interface TeamContextType {
@@ -37,6 +40,19 @@ export interface TeamContextType {
   deleteTeamMembership: (teamId: number, membershipId: number) => Promise<void>;
   teamMembership: TeamMember | null;
   setTeamMembership: (membership: TeamMember | null) => void;
+  dataSharingRequirements: Record<number, TeamDataSharingRequirements>;
+  dataSharingPolicies: Record<number, MembershipDataSharingPolicy | null>;
+  dataSharingLoading: boolean;
+  ownDataSharingBlocked: boolean;
+  hasDataSharingAttention: boolean;
+  updateTeamDataSharingRequirements: (
+    teamId: number,
+    requirements: DataSharingValues,
+  ) => Promise<TeamDataSharingRequirements>;
+  updateMembershipDataSharingPolicy: (
+    teamId: number,
+    policy: DataSharingValues,
+  ) => Promise<MembershipDataSharingPolicy>;
 }
 
 export const TeamContext = createContext<TeamContextType | null>(null);

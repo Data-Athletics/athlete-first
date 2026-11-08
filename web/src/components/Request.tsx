@@ -1,5 +1,10 @@
 import type React from "react";
-import type { TeamMembershipRequest } from "../types/Team";
+import type {
+  MembershipDataSharingPolicy,
+  TeamDataSharingRequirements,
+  TeamMembershipRequest,
+} from "../types/Team";
+import DataSharingRequirementsList from "./DataSharingRequirementsList";
 
 interface RequestProps {
   request: TeamMembershipRequest;
@@ -8,6 +13,8 @@ interface RequestProps {
   onReject: () => void;
   onDelete: () => void;
   loadingAction: "accept" | "reject" | "delete" | null;
+  requirements?: TeamDataSharingRequirements;
+  policy?: MembershipDataSharingPolicy | null;
 }
 
 const Request: React.FC<RequestProps> = ({
@@ -17,6 +24,8 @@ const Request: React.FC<RequestProps> = ({
   onReject,
   onDelete,
   loadingAction,
+  requirements,
+  policy,
 }) => (
   <div className="request-row">
     <div className="request-details">
@@ -24,6 +33,13 @@ const Request: React.FC<RequestProps> = ({
         {isStaff ? request.name : request.team_name}
       </span>
       {isStaff && <span className="request-team">{request.team_name}</span>}
+      <DataSharingRequirementsList
+        requirements={requirements}
+        invalidFields={isStaff ? undefined : policy?.invalid_fields}
+        policyAccepted={
+          isStaff ? undefined : policy !== null && policy !== undefined
+        }
+      />
     </div>
     <div className="request-actions">
       {isStaff ? (

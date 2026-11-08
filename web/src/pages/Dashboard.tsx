@@ -4,6 +4,7 @@ import type { SingleValue } from "react-select";
 import { useNavigate } from "react-router-dom";
 import MetricSquare from "../components/MetricSquare";
 import SelectInput from "../components/SelectInput";
+import TeamNavButton from "../components/TeamNavButton";
 import { useBiometrics } from "../contexts/biometrics/BiometricsContext";
 import { useTeam } from "../contexts/team/TeamContext";
 import { useUser } from "../contexts/user/UserContext";
@@ -37,6 +38,8 @@ const Dashboard: React.FC = () => {
     approvedTeamMembershipsOptions,
     teamMembership,
     setTeamMembership,
+    dataSharingLoading,
+    ownDataSharingBlocked,
   } = useTeam();
   const navigate = useNavigate();
 
@@ -70,7 +73,10 @@ const Dashboard: React.FC = () => {
     if (user?.is_staff && teamMembership) {
       void getMetrics(teamMembership.user_id);
     }
-  }, [teamMembership?.user_id, user?.is_staff]);
+  }, [
+    teamMembership?.user_id,
+    user?.is_staff,
+  ]);
 
   const handleUploadChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setUploading(true);
@@ -105,16 +111,19 @@ const Dashboard: React.FC = () => {
     setUploading(false);
   };
 
-  if (teamLoading) {
+  if (teamLoading || dataSharingLoading) {
     return (
       <>
         <Nav>
           <div className="nav-button-container">
-            <button onClick={() => navigate("/team")}>Team</button>
+            <TeamNavButton />
             <button onClick={() => navigate("/profile")}>Profile</button>
             <button onClick={logout}>Log out</button>
           </div>
         </Nav>
+        <div className="page-container dashboard-loading">
+          <p>Loading...</p>
+        </div>
       </>
     );
   }
@@ -153,7 +162,7 @@ const Dashboard: React.FC = () => {
               placeholder="Select team..."
             />
           )}
-          <button onClick={() => navigate("/team")}>Team</button>
+          <TeamNavButton />
           <button onClick={() => navigate("/profile")}>Profile</button>
           <button onClick={logout}>Log out</button>
         </div>
@@ -179,6 +188,16 @@ const Dashboard: React.FC = () => {
             </>
           )}
         </div>
+        {!user?.is_staff && ownDataSharingBlocked ? (
+          <div className="metrics-access-blocked">
+            <h2>Metrics sharing needs your attention</h2>
+            <p>
+              Review and accept the current team metric requirements before
+              viewing your data.
+            </p>
+            <button onClick={() => navigate("/team")}>Review sharing</button>
+          </div>
+        ) : (
         <div className="metrics-container">
             {user?.is_staff && !teamMembership ? (
               <div className="aggregate-metrics-placeholder">
@@ -225,6 +244,7 @@ const Dashboard: React.FC = () => {
               </>
             )}
         </div>
+        )}
       </div>
     </>
   );

@@ -19,7 +19,7 @@ from app.team.dtos.team_membership_dto import (
     TeamMembershipRequestDTO,
     UpdateTeamMembershipDTO,
 )
-from app.team.models import Team, TeamMembership, TeamMembershipStatusType
+from app.team.models import Team, TeamMembership, TeamMembershipStatusType, TeamRoleType
 from app.user.models import User
 
 # -------------------------------
@@ -70,6 +70,27 @@ async def get_team_by_id(db: AsyncSessionDep, team_id: Annotated[int, Path()]) -
         )
 
     return team
+
+
+async def require_team_coach(db: AsyncSession, team: Team, user: User) -> None:
+    """Require an approved coach membership before changing team requirements."""
+
+    if user.is_admin or user.is_staff:
+        return
+
+    rows = await db.execute(
+        select(TeamMembership).where(
+            TeamMembership.team_id == team.id,
+            TeamMembership.user_id == user.id,
+            TeamMembership.role == TeamRoleType.COACH,
+            TeamMembership.status == TeamMembershipStatusType.APPROVE,
+        )
+    )
+    if rows.scalar_one_or_none() is None:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            detail="Only an approved team coach can update data sharing requirements.",
+        )
 
 
 async def create_team(db: AsyncSession, body: CreateTeamDTO):

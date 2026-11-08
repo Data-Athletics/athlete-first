@@ -14,11 +14,13 @@ import type {
   UploadResponse,
 } from "../../types/Biometrics";
 import { twoMonthsBack } from "../../utils/dates";
+import { useTeam } from "../team/TeamContext";
 import { useUser } from "../user/UserContext";
 import { BiometricsContext } from "./BiometricsContext";
 
 export function BiometricsProvider({ children }: { children: ReactNode }) {
   const { user } = useUser();
+  const { dataSharingLoading, ownDataSharingBlocked } = useTeam();
   const { pathname } = useLocation();
   const loadedUserId = useRef<number | null>(null);
 
@@ -111,6 +113,7 @@ export function BiometricsProvider({ children }: { children: ReactNode }) {
   };
 
   const getMetrics = async (user_id: number) => {
+    clearMetrics();
     setLoading(true);
     await Promise.allSettled([
       getCalories(user_id),
@@ -140,7 +143,13 @@ export function BiometricsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (pathname !== "/dashboard" || !user || user.is_staff) {
+    if (
+      pathname !== "/dashboard" ||
+      !user ||
+      user.is_staff ||
+      dataSharingLoading ||
+      ownDataSharingBlocked
+    ) {
       loadedUserId.current = null;
       return;
     }
@@ -151,7 +160,13 @@ export function BiometricsProvider({ children }: { children: ReactNode }) {
     void getMetrics(user.id).catch((error) => {
       console.error("Failed to load metrics:", error);
     });
-  }, [pathname, user?.id]);
+  }, [
+    dataSharingLoading,
+    ownDataSharingBlocked,
+    pathname,
+    user?.id,
+    user?.is_staff,
+  ]);
 
   return (
     <BiometricsContext.Provider

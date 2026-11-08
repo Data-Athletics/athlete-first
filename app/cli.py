@@ -26,7 +26,14 @@ from app.biometrics.services import (
     skin_temp_delta,
 )
 from app.core.database import ModelBase, get_db_session_context, get_engine
-from app.team.models import Team, TeamMembership, TeamMembershipStatusType, TeamRoleType
+from app.team.models import (
+    MembershipDsp,
+    Team,
+    TeamDsr,
+    TeamMembership,
+    TeamMembershipStatusType,
+    TeamRoleType,
+)
 from app.user.models import User
 
 app = typer.Typer()
@@ -342,6 +349,82 @@ async def create_membership(
             f"role={membership.role} "
             f"status={membership.status}>"
         )
+
+
+@app.command("seed-data-sharing")
+@async_command
+async def seed_data_sharing():
+    """Seed demo team requirements and athlete sharing policies."""
+
+    async with get_db_session_context() as db:
+        teams = await db.execute(
+            select(Team).where(Team.name.in_(["Team Alpha", "Team Beta"]))
+        )
+        teams_by_name = {team.name: team for team in teams.scalars()}
+        users = await db.execute(
+            select(User).where(
+                User.username.in_(
+                    ["player@email.com", "player2@email.com", "player3@email.com"]
+                )
+            )
+        )
+        users_by_username = {user.username: user for user in users.scalars()}
+
+        if len(teams_by_name) != 2 or len(users_by_username) != 3:
+            raise typer.BadParameter(
+                "Run the standard make seed users and teams before seeding sharing data."
+            )
+
+        team_alpha = teams_by_name["Team Alpha"]
+        team_beta = teams_by_name["Team Beta"]
+        team_alpha.dsr = TeamDsr(
+            content={"bpm_shared": True, "hrv_shared": True, "effort_shared": True}
+        )
+        team_beta.dsr = TeamDsr(
+            content={
+                "calories_shared": True,
+                "respiratory_rate_shared": True,
+                "skin_temp_delta_shared": True,
+            }
+        )
+
+        memberships = await db.execute(
+            select(TeamMembership).where(
+                TeamMembership.team_id.in_([team_alpha.id, team_beta.id]),
+                TeamMembership.user_id.in_(
+                    [user.id for user in users_by_username.values()]
+                ),
+            )
+        )
+        memberships_by_user_and_team = {
+            (membership.user_id, membership.team_id): membership
+            for membership in memberships.scalars()
+        }
+
+        alpha_player = memberships_by_user_and_team[
+            (users_by_username["player@email.com"].id, team_alpha.id)
+        ]
+        beta_player = memberships_by_user_and_team[
+            (users_by_username["player2@email.com"].id, team_beta.id)
+        ]
+
+        alpha_player.dsp = MembershipDsp(
+            content={"bpm_shared": False, "hrv_shared": True, "effort_shared": True}
+        )
+        beta_player.dsp = MembershipDsp(
+            content={
+                "calories_shared": True,
+                "respiratory_rate_shared": True,
+                "skin_temp_delta_shared": True,
+            }
+        )
+
+        await db.commit()
+
+    print(
+        "Seeded Team Alpha invalid BPM consent, Team Beta valid metric consent, "
+        "and a pending Team Alpha request."
+    )
 
 
 @app.command()

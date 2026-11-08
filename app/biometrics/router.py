@@ -5,6 +5,7 @@ import sqlalchemy.exc
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
 from app.auth.dependencies import get_current_user
+from app.biometrics.access import require_metric_access
 from app.biometrics.decoder import decode_noop_csv
 from app.biometrics.dtos.AggregationsDTOs import (
     BiometricsUploadResponseDTO,
@@ -65,7 +66,11 @@ async def create_biometrics_route(
             )
 
 
-@biometrics_router.get("/{user_id}/hrv", response_model=HRVResponseDTO)
+@biometrics_router.get(
+    "/{user_id}/hrv",
+    response_model=HRVResponseDTO,
+    dependencies=[Depends(require_metric_access("hrv_shared"))],
+)
 async def get_hrv_from_end_time(
     db: AsyncSessionDep, user: UserByIdDep, end_time: datetime
 ):
@@ -76,7 +81,11 @@ async def get_hrv_from_end_time(
     return HRVResponseDTO(hrv=hrv, start=start, end=end)
 
 
-@biometrics_router.get("/{user_id}/rhr", response_model=RHRResponseDTO)
+@biometrics_router.get(
+    "/{user_id}/rhr",
+    response_model=RHRResponseDTO,
+    dependencies=[Depends(require_metric_access("rhr_shared"))],
+)
 async def get_rhr_from_start_and_end_time(
     db: AsyncSessionDep, user: UserByIdDep, start_time: datetime, end_time: datetime
 ):
@@ -88,7 +97,9 @@ async def get_rhr_from_start_and_end_time(
 
 
 @biometrics_router.get(
-    "/{user_id}/skin-temp-delta", response_model=SkinTempDeltaResponseDTO
+    "/{user_id}/skin-temp-delta",
+    response_model=SkinTempDeltaResponseDTO,
+    dependencies=[Depends(require_metric_access("skin_temp_delta_shared"))],
 )
 async def get_skin_temp_delta(db: AsyncSessionDep, user: UserByIdDep):
     """Get a user's skin temperature delta."""
@@ -99,7 +110,9 @@ async def get_skin_temp_delta(db: AsyncSessionDep, user: UserByIdDep):
 
 
 @biometrics_router.get(
-    "/{user_id}/respiratory-rate", response_model=RespiratoryRateResponseDTO
+    "/{user_id}/respiratory-rate",
+    response_model=RespiratoryRateResponseDTO,
+    dependencies=[Depends(require_metric_access("respiratory_rate_shared"))],
 )
 async def get_respiratory_rate(
     user: UserByIdDep, db: AsyncSessionDep
@@ -111,7 +124,11 @@ async def get_respiratory_rate(
     return RespiratoryRateResponseDTO(respiratory_rate=rate)
 
 
-@biometrics_router.get("/{user_id}/effort", response_model=EffortStrainResponseDTO)
+@biometrics_router.get(
+    "/{user_id}/effort",
+    response_model=EffortStrainResponseDTO,
+    dependencies=[Depends(require_metric_access("effort_shared"))],
+)
 async def get_effort_strain(
     user: UserByIdDep, db: AsyncSessionDep
 ) -> EffortStrainResponseDTO:
@@ -122,17 +139,13 @@ async def get_effort_strain(
     return EffortStrainResponseDTO(effort=effort)
 
 
-@biometrics_router.get("/{user_id}/calories", response_model=CaloriesResponseDTO)
-async def get_calories(
-    db: AsyncSessionDep, user_id: int, user: UserByIdDep
-) -> CaloriesResponseDTO:
+@biometrics_router.get(
+    "/{user_id}/calories",
+    response_model=CaloriesResponseDTO,
+    dependencies=[Depends(require_metric_access("calories_shared"))],
+)
+async def get_calories(db: AsyncSessionDep, user: UserByIdDep) -> CaloriesResponseDTO:
     """Get a user's estimated calories."""
-
-    if user_id != user.id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User is not authorized to access this data.",
-        )
 
     if (
         user.height is None
@@ -150,7 +163,11 @@ async def get_calories(
     return CaloriesResponseDTO(calories=calories)
 
 
-@biometrics_router.get("/{user_id}/bpm", response_model=GraphResponseDTO)
+@biometrics_router.get(
+    "/{user_id}/bpm",
+    response_model=GraphResponseDTO,
+    dependencies=[Depends(require_metric_access("bpm_shared"))],
+)
 async def get_bpm_from_start_and_end_time(
     db: AsyncSessionDep, user: UserByIdDep, start_time: datetime, end_time: datetime
 ):

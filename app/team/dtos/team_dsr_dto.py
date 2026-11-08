@@ -7,6 +7,7 @@ class BaseTeamDsrDTO(BaseDTO):
     """Fields a coach can set for the team's data sharing requirements"""
 
     bpm_shared: bool | None = Field(default=None)
+    rhr_shared: bool | None = Field(default=None)
     calories_shared: bool | None = Field(default=None)
     respiratory_rate_shared: bool | None = Field(default=None)
     hrv_shared: bool | None = Field(default=None)

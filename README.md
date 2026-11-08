@@ -12,6 +12,19 @@ Ensure docker is downloaded and running
 
 To run development setup: make dev
 
+To load the demo teams, metric requirements, consent states, and sample biometrics:
+
+```bash
+make seed
+```
+
+The seeded accounts use the password `changeme`:
+
+- `coach@email.com`: configure metric requests from the Team page.
+- `player@email.com`: Team Alpha has an invalid BPM policy and should show the red attention dot.
+- `player2@email.com`: Team Beta has valid consent and sample metrics.
+- `player3@email.com`: has a pending Team Alpha request with visible requirements.
+
 View API docs at http://localhost:8000/api/v1/docs
 
 ## Conventions

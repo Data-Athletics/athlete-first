@@ -7,6 +7,7 @@ class BaseMembershipDspDTO(BaseDTO):
     """Core fields for a membership data sharing policy"""
 
     bpm_shared: bool | None = Field(default=None)
+    rhr_shared: bool | None = Field(default=None)
     calories_shared: bool | None = Field(default=None)
     respiratory_rate_shared: bool | None = Field(default=None)
     hrv_shared: bool | None = Field(default=None)
@@ -32,6 +33,7 @@ class MembershipDspDTO(BaseMembershipDspDTO):
     )
 
     bpm_shared: bool | None = Field(default=True)
+    rhr_shared: bool | None = Field(default=True)
     calories_shared: bool | None = Field(default=True)
     respiratory_rate_shared: bool | None = Field(default=True)
     hrv_shared: bool | None = Field(default=True)

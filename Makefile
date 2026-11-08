@@ -24,7 +24,10 @@ seed:
 		uv run python app/cli.py create-membership --user-id 2 --team-id 2 --role athlete --status approve && \
 		uv run python app/cli.py create-membership --user-id 4 --team-id 1 --role coach --status approve && \
 		uv run python app/cli.py create-membership --user-id 4 --team-id 2 --role coach --status approve && \
-		uv run python app/cli.py create-membership --user-id 3 --team-id 1 --status pending \
+		uv run python app/cli.py create-membership --user-id 3 --team-id 1 --status pending && \
+		uv run python app/cli.py seed-data-sharing && \
+		uv run python app/cli.py upload-biometrics --user-id 1 --file /app/tests/fixtures/noop_mock.csv && \
+		uv run python app/cli.py upload-biometrics --user-id 2 --file /app/tests/fixtures/noop_mock.csv \
 	"
 
 test:

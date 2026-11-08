@@ -13,3 +13,38 @@
   cursor: pointer;
   font-weight: 600;
 }
+
+.team-nav-button {
+  position: relative;
+}
+
+.team-attention-dot {
+  position: absolute;
+  top: 7px;
+  right: 16px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background-color: #ef6464;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #ef6464, transparent 78%);
+  animation: team-attention-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes team-attention-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .team-attention-dot {
+    animation: none;
+  }
+}

@@ -1,6 +1,7 @@
 import type React from "react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import TeamNavButton from "../components/TeamNavButton";
 import { useUser } from "../contexts/user/UserContext";
 import Nav from "../Nav";
 import { alertUser } from "../utils/alerts";
@@ -52,7 +53,7 @@ const Profile: React.FC = () => {
       <Nav>
         <div className="nav-button-container">
           <button onClick={() => navigate("/dashboard")}>Dashboard</button>
-          <button onClick={() => navigate("/team")}>Team</button>
+          <TeamNavButton />
           <button onClick={logout}>Log out</button>
         </div>
       </Nav>
