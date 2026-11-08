@@ -253,8 +253,6 @@ async def test_dsp_bool_metrics_access(
         f"/biometrics/{metrics_access_data.u1.id}/{metric_slug}"
     )
     assert res.status_code == 403
-    data = res.json()
-    print('data:', data)
     assert res.json()["reason"] == PermissionDeniedReason.POLICY_RESTRICTION
 
     # Coach can still see other metrics
