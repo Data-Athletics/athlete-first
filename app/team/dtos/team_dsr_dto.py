@@ -10,6 +10,7 @@ class BaseTeamDsrDTO(BaseDTO):
     calories_shared: bool | None = Field(default=None)
     respiratory_rate_shared: bool | None = Field(default=None)
     hrv_shared: bool | None = Field(default=None)
+    rhr_shared: bool | None = Field(default=None)
     effort_shared: bool | None = Field(default=None)
     skin_temp_delta_shared: bool | None = Field(default=None)
 
