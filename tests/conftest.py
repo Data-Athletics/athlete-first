@@ -112,6 +112,29 @@ async def noop_user_fixture(admin_client: AsyncClient, current_admin: User):
     return current_admin
 
 
+@pytest.fixture(scope="function", name="current_user")
+async def current_user_fixture(db: AsyncSession):
+    """Represents a standard API user"""
+
+    user = await create_test_user(db)
+
+    yield user
+
+
+@pytest.fixture(scope="function", name="user_client")
+async def user_client_fixture(app, current_user: User):
+    """HTTP client authenticated with a standard user"""
+
+    token = create_test_user_token(current_user)
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test" + app_settings.api_prefix,
+        headers={"Authorization": f"Bearer {token}"},
+    ) as client:
+        yield client
+
+
 @pytest.fixture(scope="function", name="current_admin")
 async def current_admin_fixture(db: AsyncSession):
     """Represents an API user with admin privileges"""

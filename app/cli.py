@@ -127,6 +127,15 @@ def parse_datetime(value: str) -> datetime:
         ) from e
 
 
+async def get_metric_user(db, user_id: int) -> User:
+    """Load a metric target for a trusted internal CLI calculation."""
+
+    user = await db.get(User, user_id)
+    if user is None:
+        raise typer.BadParameter(f"User {user_id} does not exist.")
+    return user
+
+
 @app.command()
 @async_command
 async def upload_biometrics(
@@ -173,7 +182,10 @@ async def hrv(
     end = parse_datetime(end_time)
 
     async with get_db_session_context() as db:
-        hrv_value, start, end = await calculate_hrv(db, user_id, end)
+        user = await get_metric_user(db, user_id)
+        hrv_value, start, end = await calculate_hrv(
+            db, requestor=None, target_user=user, end_time=end
+        )
 
     print(f"HRV: <User id={user_id} hrv={hrv_value} start='{start}' end='{end}'>")
 
@@ -194,7 +206,10 @@ async def rhr(
         raise typer.BadParameter("Start time must be less than end time.")
 
     async with get_db_session_context() as db:
-        rhr_value, start, end = await rhr_over_interval(db, user_id, start, end)
+        user = await get_metric_user(db, user_id)
+        rhr_value, start, end = await rhr_over_interval(
+            db, requestor=None, target_user=user, start_time=start, end_time=end
+        )
 
     print(f"RHR: <User id={user_id} rhr={rhr_value} start='{start}' end='{end}'>")
 
@@ -207,7 +222,8 @@ async def skin_temp_delta_command(
     """Calculate skin temperature delta for a user."""
 
     async with get_db_session_context() as db:
-        delta = await skin_temp_delta(db, user_id)
+        user = await get_metric_user(db, user_id)
+        delta = await skin_temp_delta(db, requestor=None, target_user=user)
 
     print(f"Skin temp delta: <User id={user_id} skin_temp_delta={delta}>")
 
@@ -220,7 +236,8 @@ async def respiratory_rate_command(
     """Calculate respiratory rate for a user."""
 
     async with get_db_session_context() as db:
-        rate = await respiratory_rate(db, user_id)
+        user = await get_metric_user(db, user_id)
+        rate = await respiratory_rate(db, requestor=None, target_user=user)
 
     print(f"Respiratory rate: <User id={user_id} respiratory_rate={rate}>")
 
@@ -231,7 +248,10 @@ async def effort(user_id: Annotated[int, typer.Option(help="User ID")]):
     """Calculate effort/strain for a user."""
 
     async with get_db_session_context() as db:
-        effort_value = await calculate_effort_strain(db, user_id)
+        user = await get_metric_user(db, user_id)
+        effort_value = await calculate_effort_strain(
+            db, requestor=None, target_user=user
+        )
 
     print(f"Effort: <User id={user_id} effort={effort_value}>")
 
@@ -242,10 +262,7 @@ async def calories(user_id: Annotated[int, typer.Option(help="User ID")]):
     """Calculate estimated calories for a user."""
 
     async with get_db_session_context() as db:
-        user = await db.get(User, user_id)
-
-        if user is None:
-            raise typer.BadParameter(f"User {user_id} does not exist.")
+        user = await get_metric_user(db, user_id)
 
         if (
             user.height is None
@@ -258,7 +275,7 @@ async def calories(user_id: Annotated[int, typer.Option(help="User ID")]):
                 "and age to calculate calories."
             )
 
-        calorie_value = await calculate_calories(db, user_id)
+        calorie_value = await calculate_calories(db, requestor=None, target_user=user)
 
     print(f"Calories: <User id={user_id} calories={calorie_value}>")
 
@@ -279,7 +296,10 @@ async def bpm(
         raise typer.BadParameter("Start time must be less than end time.")
 
     async with get_db_session_context() as db:
-        data = await bulk_bpm_data(db, user_id, start, end)
+        user = await get_metric_user(db, user_id)
+        data = await bulk_bpm_data(
+            db, requestor=None, target_user=user, start_time=start, end_time=end
+        )
 
     print(
         f"BPM: <User id={user_id} "
