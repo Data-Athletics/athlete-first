@@ -149,7 +149,7 @@ async def _can_access_metric(
             continue
 
         effective_policy = get_effective_membership_dsp(membership)
-        if effective_policy.invalid_fields:
+        if check_policy in effective_policy.invalid_fields:
             continue
         if getattr(effective_policy, check_policy, False) is True:
             return

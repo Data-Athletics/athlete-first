@@ -58,10 +58,6 @@ async def get_user_by_id(
     # If not, return a plain 404 error
     if not can_access and not current_user.is_admin:
         raise not_found_error
-    elif current_user.is_admin:
-        print("Allowing admin")
-    else:
-        print("Matching teams:", matched_team_ids)
 
     # Finally, safely check if the user exists
     res = await db.execute(select(User).where(User.id == user_id))
