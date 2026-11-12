@@ -4,15 +4,20 @@ import {
   BarChart,
   CartesianGrid,
   ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import type { GraphData } from "../types/Biometrics";
+import { formatMetricValue } from "../utils/metric";
 import "./MetricSquare.css";
 
 interface BaseMetricSquareProps {
   type: "text" | "graph";
   title: string;
+  unit?: string;
+  playerName?: string;
+  compactHeader?: boolean;
 }
 
 interface MetricSquareValueProps extends BaseMetricSquareProps {
@@ -31,7 +36,23 @@ const MetricSquare: React.FC<MetricSquareProps> = (props) => {
   return (
     <>
       <div className="metric-container">
-        <h5 className="metric-title">{props.title}</h5>
+        <div
+          className={`metric-heading${
+            props.compactHeader ? " is-compact" : ""
+          }`}
+        >
+          {props.playerName && (
+            <span className="metric-player">{props.playerName}</span>
+          )}
+          {!props.compactHeader && (
+            <>
+              <h5 className="metric-title">{props.title}</h5>
+              {props.unit && (
+                <span className="metric-details">({props.unit})</span>
+              )}
+            </>
+          )}
+        </div>
         <div className="value-container">
           {(() => {
             switch (props.type) {
@@ -66,7 +87,16 @@ const MetricSquare: React.FC<MetricSquareProps> = (props) => {
                         dy={-8}
                       />
 
-                      <YAxis width={30} domain={[0, "auto"]} />
+                      <YAxis
+                        width={30}
+                        tick={{ fontSize: 15, fill: "#9ca3af" }}
+                        domain={[0, "auto"]}
+                        tickFormatter={formatMetricValue}
+                      />
+
+                      <Tooltip
+                        formatter={(value) => formatMetricValue(Number(value))}
+                      />
 
                       <Bar
                         dataKey="value"

@@ -21,9 +21,11 @@ const TeamPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useUser();
   const {
+    loading: teamsLoading,
     teams,
     myTeams,
     teamsOptions,
+    getTeams,
     getTeamMembers,
     leaveTeam,
     createTeamMembershipRequest,
@@ -41,6 +43,7 @@ const TeamPage: React.FC = () => {
   const [requestTeam, setRequestTeam] = useState<Team | null>(null);
   const [requesting, setRequesting] = useState(false);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const [refreshingMetrics, setRefreshingMetrics] = useState(false);
   const [teamMembers, setTeamMembers] = useState<Record<number, TeamMember[]>>(
     {},
   );
@@ -73,6 +76,18 @@ const TeamPage: React.FC = () => {
       ...current,
       [section]: !current[section],
     }));
+  };
+
+  const onRefreshMetrics = async () => {
+    setRefreshingMetrics(true);
+    try {
+      await getTeams();
+    } catch (error) {
+      console.error("Failed to refresh metrics requests:", error);
+      alertUser("Metrics requests could not be refreshed.");
+    } finally {
+      setRefreshingMetrics(false);
+    }
   };
 
   useEffect(() => {
@@ -284,7 +299,9 @@ const TeamPage: React.FC = () => {
             </button>
             <div className="team-section-panel">
               <div className="team-section-panel-inner">
-            {acceptedTeams.length === 0 ? (
+            {teamsLoading ? (
+              <p>Loading...</p>
+            ) : acceptedTeams.length === 0 ? (
               <p>No teams at this time.</p>
             ) : (
               acceptedTeams.map(({ id, name, membership }) => {
@@ -322,9 +339,10 @@ const TeamPage: React.FC = () => {
                       ) : (
                         <>
                           <span>{membership.role}</span>
-                          {(dataSharingPolicies[id] === null ||
-                            dataSharingPolicies[id] === undefined ||
-                            dataSharingPolicies[id]?.invalid_fields.length > 0) && (
+                          {!dataSharingLoading &&
+                            (dataSharingPolicies[id] === null ||
+                              dataSharingPolicies[id] === undefined ||
+                              dataSharingPolicies[id]?.invalid_fields.length > 0) && (
                             <span className="data-sharing-alert">
                               Data sharing needs your attention
                             </span>
@@ -453,15 +471,25 @@ const TeamPage: React.FC = () => {
               openSections.metrics ? " is-open" : ""
             }`}
           >
-            <button
-              className="team-section-toggle"
-              type="button"
-              aria-expanded={openSections.metrics}
-              onClick={() => toggleSection("metrics")}
-            >
-              <span className="team-section-toggle-title">Metrics Requests</span>
-              <span className="team-section-toggle-icon" aria-hidden="true" />
-            </button>
+            <div className="team-section-toggle-row">
+              <button
+                className="team-section-toggle"
+                type="button"
+                aria-expanded={openSections.metrics}
+                onClick={() => toggleSection("metrics")}
+              >
+                <span className="team-section-toggle-title">Metrics Requests</span>
+                <span className="team-section-toggle-icon" aria-hidden="true" />
+              </button>
+              <button
+                className="team-section-refresh"
+                type="button"
+                disabled={refreshingMetrics}
+                onClick={() => void onRefreshMetrics()}
+              >
+                {refreshingMetrics ? "Refreshing..." : "Refresh"}
+              </button>
+            </div>
             <div className="team-section-panel">
               <div className="team-section-panel-inner">
             {dataSharingLoading ? (

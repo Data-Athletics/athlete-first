@@ -1,54 +1,41 @@
-WITH max_time AS (
-    SELECT MAX(timestamp)
+WITH clean AS (
+    SELECT
+        bpm,
+        timestamp,
+        date_trunc('day', timestamp) AS day
     FROM af_heartrate
-    WHERE timestamp <= NOW()
-        AND user_id = :user_id
-),
-clean AS (
-    SELECT bpm, timestamp
-    FROM af_heartrate
-    WHERE (SELECT * FROM max_time) >= timestamp
-        AND timestamp >= (SELECT * FROM max_time) - INTERVAL '1 day'
+    WHERE timestamp >= CAST(:start_time AS TIMESTAMPTZ)
+        AND timestamp <= CAST(:end_time AS TIMESTAMPTZ)
         AND user_id = :user_id
         AND bpm > 30
         AND bpm < 220
 ),
-rhr AS (
+medians AS (
     SELECT
-        percentile_cont(.1)
-        WITHIN GROUP (ORDER BY median_bpm) AS rhr
-    FROM (
-        SELECT
-            date_bin(
-                INTERVAL '10 minutes',
-                timestamp,
-                TIMESTAMPTZ '2000-01-01 00:00:00+00'
-            ) AS bins,
-            percentile_cont(.5)
-            WITHIN GROUP (ORDER BY bpm) AS median_bpm
-        FROM clean
-        GROUP BY bins
-    ) AS medians
-),
-max_bpm AS (
-    SELECT MAX(bpm) AS max_bpm
+        day,
+        date_bin(
+            INTERVAL '10 minutes',
+            timestamp,
+            TIMESTAMPTZ '2000-01-01 00:00:00+00'
+        ) AS bins,
+        percentile_cont(.5) WITHIN GROUP (ORDER BY bpm) AS median_bpm
     FROM clean
+    GROUP BY day, bins
 ),
-active_threshold AS (
+daily_rhr AS (
     SELECT
-        rhr.rhr + .5 * (max_bpm.max_bpm - rhr.rhr)
-        AS active_threshold
-    FROM max_bpm
-    CROSS JOIN rhr
+        day,
+        percentile_cont(.1) WITHIN GROUP (ORDER BY median_bpm) AS rhr
+    FROM medians
+    GROUP BY day
 ),
-vo2_max AS (
-    SELECT
-        15.3 * (max_bpm.max_bpm / rhr.rhr) AS vo2
-    FROM max_bpm
-    CROSS JOIN rhr
+daily_max AS (
+    SELECT day, MAX(bpm) AS max_bpm
+    FROM clean
+    GROUP BY day
 ),
 user_info AS (
-    SELECT weight, height, age, sex
+    SELECT weight, height, age, lower(sex) AS sex
     FROM af_user
     WHERE id = :user_id
 ),
@@ -65,60 +52,75 @@ bmr AS (
                     + 9.247 * weight
                     + 3.098 * height
                     - 4.330 * age
-        END AS bmr
+        END AS bmr,
+        sex,
+        weight,
+        age
     FROM user_info
+),
+daily_params AS (
+    SELECT
+        daily_max.day,
+        daily_rhr.rhr,
+        daily_max.max_bpm,
+        daily_rhr.rhr + .5 * (daily_max.max_bpm - daily_rhr.rhr)
+            AS active_threshold,
+        15.3 * (daily_max.max_bpm / NULLIF(daily_rhr.rhr, 0)) AS vo2
+    FROM daily_max
+    JOIN daily_rhr ON daily_rhr.day = daily_max.day
 ),
 gross_rates AS (
     SELECT
-        (
-            CASE
-                WHEN sex = 'Male'
-                    THEN -95.7735
-                        + 0.634 * bpm
-                        + 0.404 * vo2
-                        + 0.394 * weight
-                        + 0.271 * age
-                WHEN sex = 'Female'
-                    THEN -59.3954
-                        + 0.450 * bpm
-                        + 0.380 * vo2
-                        + 0.103 * weight
-                        + 0.274 * age
-            END
-        ) / 251.04 AS gross_rate,
+        clean.day,
+        clean.bpm,
         EXTRACT(
             EPOCH FROM (
-                LEAD(timestamp) OVER (ORDER BY timestamp)
-                - timestamp
+                LEAD(clean.timestamp) OVER (
+                    PARTITION BY clean.day ORDER BY clean.timestamp
+                ) - clean.timestamp
             )
         ) AS interval,
-        bpm
-    FROM user_info
-    CROSS JOIN vo2_max
-    CROSS JOIN clean
+        daily_params.active_threshold,
+        bmr.bmr,
+        (
+            CASE
+                WHEN bmr.sex = 'male'
+                    THEN -95.7735
+                        + 0.634 * clean.bpm
+                        + 0.404 * daily_params.vo2
+                        + 0.394 * bmr.weight
+                        + 0.271 * bmr.age
+                WHEN bmr.sex = 'female'
+                    THEN -59.3954
+                        + 0.450 * clean.bpm
+                        + 0.380 * daily_params.vo2
+                        + 0.103 * bmr.weight
+                        + 0.274 * bmr.age
+            END
+        ) / 251.04 AS gross_rate
+    FROM clean
+    JOIN daily_params ON daily_params.day = clean.day
+    CROSS JOIN bmr
 ),
 active_rates AS (
     SELECT
+        day,
+        bmr,
         CASE
             WHEN bpm >= active_threshold THEN
-                GREATEST(
-                    0,
-                    gross_rate - (bmr / 86400.0)
-                )
+                GREATEST(0, gross_rate - (bmr / 86400.0))
             ELSE 0
         END AS active_rate,
         interval
     FROM gross_rates
-    CROSS JOIN bmr
-    CROSS JOIN active_threshold
 ),
-active_calories AS (
+daily_calories AS (
     SELECT
-        SUM(interval * active_rate) AS active_cal
+        day,
+        MAX(bmr) + SUM(interval * active_rate) AS calories
     FROM active_rates
+    GROUP BY day
 )
-
-SELECT
-    active_cal + bmr AS calories
-FROM active_calories
-CROSS JOIN bmr;
+SELECT day, calories AS value
+FROM daily_calories
+ORDER BY day;

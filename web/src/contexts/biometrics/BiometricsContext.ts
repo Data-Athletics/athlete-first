@@ -1,23 +1,32 @@
 import { createContext, useContext } from "react";
-import type { GraphData, UploadResponse } from "../../types/Biometrics";
+import type {
+  GraphData,
+  MetricSnapshot,
+  UploadResponse,
+} from "../../types/Biometrics";
 
 export interface BiometricsContextType {
   loading: boolean;
-  calories: number | null;
-  skinTempDelta: number | null;
+  metricsRefreshing: boolean;
+  metricsUpdatedAt: number | null;
+  caloriesGraph: GraphData | null;
   hrv: number | null;
   rhr: number | null;
   respiratoryRate: number | null;
-  effort: number | null;
+  effortGraph: GraphData | null;
   bpmGraph: GraphData | null;
   uploadCsv: (file: File, user_id: number) => Promise<UploadResponse>;
-  getCalories: (user_id: number) => Promise<void>;
-  getSkinTempDelta: (user_id: number) => Promise<void>;
-  getHRV: (user_id: number) => Promise<void>;
-  getRHR: (user_id: number) => Promise<void>;
-  getRespiratoryRate: (user_id: number) => Promise<void>;
-  getEffort: (user_id: number) => Promise<void>;
-  getBpmGraph: (user_id: number, start: Date, end: Date) => Promise<void>;
+  getCalories: (user_id: number) => Promise<GraphData>;
+  getHRV: (user_id: number) => Promise<number | null>;
+  getRHR: (user_id: number) => Promise<number | null>;
+  getRespiratoryRate: (user_id: number) => Promise<number | null>;
+  getEffort: (user_id: number) => Promise<GraphData>;
+  getBpmGraph: (
+    user_id: number,
+    start?: Date,
+    end?: Date,
+  ) => Promise<GraphData>;
+  getMetricsSnapshot: (user_id: number) => Promise<MetricSnapshot>;
   getMetrics: (user_id: number) => Promise<void>;
   clearMetrics: () => void;
 }

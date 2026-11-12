@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timezone
 from typing import Literal, get_args
 
 from pydantic import BaseModel, Field, model_validator
@@ -63,15 +63,26 @@ class MetricsFilterDTO(BaseDTO):
     """Query parameters to filter metrics"""
 
     start_time: datetime = Field(
-        description="Defaults to 1 day from now",
-        default_factory=lambda: datetime.now() - timedelta(days=1),
+        description="Defaults to the beginning of available metric history",
+        default_factory=lambda: datetime(1970, 1, 1, tzinfo=timezone.utc),
     )
     end_time: datetime = Field(
-        description="Defaults to now", default_factory=lambda: datetime.now()
+        description="Defaults to now",
+        default_factory=lambda: datetime.now(timezone.utc),
     )
 
     @model_validator(mode="after")
     def verify_start_before_end_date(self):
+        if self.start_time.tzinfo is None:
+            self.start_time = self.start_time.replace(tzinfo=timezone.utc)
+        else:
+            self.start_time = self.start_time.astimezone(timezone.utc)
+
+        if self.end_time.tzinfo is None:
+            self.end_time = self.end_time.replace(tzinfo=timezone.utc)
+        else:
+            self.end_time = self.end_time.astimezone(timezone.utc)
+
         if self.start_time > self.end_time:
             raise ValueError("Start time must be less than end time")
 

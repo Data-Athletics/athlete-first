@@ -1,11 +1,12 @@
-from datetime import datetime, timedelta
+from collections.abc import Sequence
+from datetime import datetime, timezone
 from math import ceil
 from pathlib import Path
 from statistics import fmean
 from typing import Any, cast
 
 from fastapi import HTTPException, status
-from sqlalchemy import and_, exists, select, text
+from sqlalchemy import and_, exists, func, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,6 +29,41 @@ SQL_DIRECTORY = Path(__file__).parent / "sql"
 # stays below that limit for the widest biometric model.
 UPLOAD_BATCH_SIZE = 4_000
 MAX_GRAPH_POINTS = 1_000
+
+
+def _metric_window(
+    start_time: datetime | None, end_time: datetime | None
+) -> tuple[datetime, datetime]:
+    resolved_end = end_time or datetime.now(timezone.utc)
+    resolved_start = start_time or datetime(1970, 1, 1, tzinfo=timezone.utc)
+    return resolved_start, resolved_end
+
+
+def _graph_from_rows(
+    rows: Sequence[Sequence[Any]], start_time: datetime, end_time: datetime
+) -> GraphResponseDTO:
+    """Build a bounded graph response from ordered daily metric rows."""
+
+    points = [(row[0], float(row[1])) for row in rows if row[1] is not None]
+
+    if len(points) > MAX_GRAPH_POINTS:
+        bucket_size = ceil(len(points) / MAX_GRAPH_POINTS)
+        points = [
+            (bucket[len(bucket) // 2][0], fmean(row[1] for row in bucket))
+            for index in range(0, len(points), bucket_size)
+            if (bucket := points[index : index + bucket_size])
+        ]
+
+    return GraphResponseDTO(
+        start=start_time,
+        end=end_time,
+        x=[point[0] for point in points],
+        y=[point[1] for point in points],
+    )
+
+
+def _graph_average(graph: GraphResponseDTO) -> float | None:
+    return fmean(graph.y) if graph.y else None
 
 
 async def bulk_upload_noop_data(
@@ -164,23 +200,28 @@ async def _can_access_metric(
 
 
 async def calculate_hrv(
-    db: AsyncSessionDep, requestor: User | None, target_user: User, end_time: datetime
+    db: AsyncSessionDep,
+    requestor: User | None,
+    target_user: User,
+    end_time: datetime,
+    start_time: datetime | None = None,
 ) -> tuple[float | None, datetime, datetime]:
     """
-    Computes and returns hrv value for a user from an end_time to six months in the past.
-
-    Returns:
-        tuple[float, datetime, datetime]: (hrv_value, start_time, end_time)
+    Computes the latest daily HRV deviation from the interval mean.
     """
 
     # Check if the current user can see the metric
     await _can_access_metric(db, requestor, target_user.id, metric="hrv")
+    start_time, end_time = _metric_window(start_time, end_time)
 
     # Then compute the metric
     query = text(load_sql(SQL_DIRECTORY, "calculate_hrv.sql"))
-    result = await db.execute(query, {"user_id": target_user.id, "end_time": end_time})
+    result = await db.execute(
+        query,
+        {"user_id": target_user.id, "start_time": start_time, "end_time": end_time},
+    )
 
-    return (result.scalar_one(), end_time - timedelta(days=61), end_time)
+    return result.scalar_one(), start_time, end_time
 
 
 async def bulk_bpm_data(
@@ -190,39 +231,32 @@ async def bulk_bpm_data(
     start_time: datetime,
     end_time: datetime,
 ) -> GraphResponseDTO:
-    """Returns a user's bpm data from a start to and end time"""
+    """Returns one average BPM point per day over the requested interval."""
 
     # Check if the current user can see the metric
     await _can_access_metric(db, requestor, target_user.id, metric="bpm")
 
     # Then compute the metric
     stmt = (
-        select(HeartRate.timestamp, HeartRate.bpm)
+        select(
+            func.date_trunc("day", HeartRate.timestamp).label("day"),
+            func.avg(HeartRate.bpm).label("average_bpm"),
+        )
         .where(
             and_(
                 HeartRate.user_id == target_user.id,
                 HeartRate.timestamp >= start_time,
                 HeartRate.timestamp <= end_time,
+                HeartRate.bpm > 30,
+                HeartRate.bpm < 220,
             )
         )
-        .order_by(HeartRate.timestamp.asc())
+        .group_by(text("1"))
+        .order_by(text("1"))
     )
 
     result = await db.execute(stmt)
-    rows = result.all()  # list[tuple[timestamp, bpm]]
-
-    if len(rows) > MAX_GRAPH_POINTS:
-        bucket_size = ceil(len(rows) / MAX_GRAPH_POINTS)
-        rows = [
-            (bucket[len(bucket) // 2][0], fmean(row[1] for row in bucket))
-            for index in range(0, len(rows), bucket_size)
-            if (bucket := rows[index : index + bucket_size])
-        ]
-
-    x = [row[0] for row in rows]
-    y = [row[1] for row in rows]
-
-    return GraphResponseDTO(start=start_time, end=end_time, x=x, y=y)
+    return _graph_from_rows(result.all(), start_time, end_time)
 
 
 async def rhr_over_interval(
@@ -233,10 +267,7 @@ async def rhr_over_interval(
     end_time: datetime,
 ) -> tuple[float | None, datetime, datetime]:
     """
-    Computes and returns rhr value for a user from an end_time to some past start time (uses 10 minute buckets)
-
-    Returns:
-        tuple[float, datetime, datetime]: (rhr_value, start_time, end_time)
+    Computes the latest daily RHR deviation from the interval mean.
     """
 
     # Check if the current user can see the metric
@@ -249,7 +280,7 @@ async def rhr_over_interval(
         {"user_id": target_user.id, "start_time": start_time, "end_time": end_time},
     )
 
-    return (result.scalar_one(), start_time, end_time)
+    return result.scalar_one(), start_time, end_time
 
 
 async def skin_temp_delta(
@@ -268,46 +299,83 @@ async def skin_temp_delta(
 
 
 async def respiratory_rate(
-    db: AsyncSessionDep, requestor: User | None, target_user: User
+    db: AsyncSessionDep,
+    requestor: User | None,
+    target_user: User,
+    start_time: datetime | None = None,
+    end_time: datetime | None = None,
 ) -> float | None:
     """
-    Calculate respiratory rate from rr intervals
-
-    Returns:
-        float: beats/minute
+    Computes the latest daily respiratory-rate deviation from the interval mean.
     """
     # Check if the current user can see the metric
     await _can_access_metric(db, requestor, target_user.id, metric="respiratory_rate")
+    start_time, end_time = _metric_window(start_time, end_time)
 
     # Then compute the metric
     query = text(load_sql(SQL_DIRECTORY, "respiratory_rate.sql"))
-    result = await db.execute(query, {"user_id": target_user.id})
+    result = await db.execute(
+        query,
+        {"user_id": target_user.id, "start_time": start_time, "end_time": end_time},
+    )
 
     return result.scalar_one()
 
 
-async def calculate_effort_strain(
-    db: AsyncSessionDep, requestor: User | None, target_user: User
-) -> float | None:
-    """Calculates strain/effort for a user over the most recent 24 hours with data."""
+async def calculate_effort_graph(
+    db: AsyncSessionDep,
+    requestor: User | None,
+    target_user: User,
+    start_time: datetime | None = None,
+    end_time: datetime | None = None,
+) -> GraphResponseDTO:
+    """Returns one daily average effort point per day."""
 
     # Check if the current user can see the metric
     await _can_access_metric(db, requestor, target_user.id, metric="effort")
+    start_time, end_time = _metric_window(start_time, end_time)
 
     # Then compute the metric
     query = text(load_sql(SQL_DIRECTORY, "effort_strain.sql"))
-    result = await db.execute(query, {"user_id": target_user.id})
+    result = await db.execute(
+        query,
+        {"user_id": target_user.id, "start_time": start_time, "end_time": end_time},
+    )
 
-    return result.scalar_one()
+    return _graph_from_rows(result.all(), start_time, end_time)
 
 
-async def calculate_calories(
-    db: AsyncSessionDep, requestor: User | None, target_user: User
+async def calculate_effort_strain(
+    db: AsyncSessionDep,
+    requestor: User | None,
+    target_user: User,
+    start_time: datetime | None = None,
+    end_time: datetime | None = None,
 ) -> float | None:
-    """Calculate estimated calories for a user over their most recent day of HR data."""
+    """Return the interval average for the CLI compatibility API."""
+
+    graph = await calculate_effort_graph(
+        db,
+        requestor=requestor,
+        target_user=target_user,
+        start_time=start_time,
+        end_time=end_time,
+    )
+    return _graph_average(graph)
+
+
+async def calculate_calories_graph(
+    db: AsyncSessionDep,
+    requestor: User | None,
+    target_user: User,
+    start_time: datetime | None = None,
+    end_time: datetime | None = None,
+) -> GraphResponseDTO:
+    """Returns one daily average-calorie point per day."""
 
     # Check if the current user can see the metric
     await _can_access_metric(db, requestor, target_user.id, metric="calories")
+    start_time, end_time = _metric_window(start_time, end_time)
 
     if (
         target_user.height is None
@@ -322,6 +390,28 @@ async def calculate_calories(
 
     # Then compute the metric
     query = text(load_sql(SQL_DIRECTORY, "calories.sql"))
-    result = await db.execute(query, {"user_id": target_user.id})
+    result = await db.execute(
+        query,
+        {"user_id": target_user.id, "start_time": start_time, "end_time": end_time},
+    )
 
-    return result.scalar_one()
+    return _graph_from_rows(result.all(), start_time, end_time)
+
+
+async def calculate_calories(
+    db: AsyncSessionDep,
+    requestor: User | None,
+    target_user: User,
+    start_time: datetime | None = None,
+    end_time: datetime | None = None,
+) -> float | None:
+    """Return the interval average for the CLI compatibility API."""
+
+    graph = await calculate_calories_graph(
+        db,
+        requestor=requestor,
+        target_user=target_user,
+        start_time=start_time,
+        end_time=end_time,
+    )
+    return _graph_average(graph)
