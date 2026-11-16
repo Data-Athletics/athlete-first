@@ -35,7 +35,11 @@ daily_max AS (
     GROUP BY day
 ),
 user_info AS (
-    SELECT weight, height, age, lower(sex) AS sex
+    SELECT
+        weight * 0.45359237 AS weight_kg,
+        height * 2.54 AS height_cm,
+        age,
+        lower(sex) AS sex
     FROM af_user
     WHERE id = :user_id
 ),
@@ -44,17 +48,17 @@ bmr AS (
         CASE
             WHEN sex = 'male'
                 THEN 88.362
-                    + 13.397 * weight
-                    + 4.799 * height
+                    + 13.397 * weight_kg
+                    + 4.799 * height_cm
                     - 5.677 * age
             WHEN sex = 'female'
                 THEN 447.593
-                    + 9.247 * weight
-                    + 3.098 * height
+                    + 9.247 * weight_kg
+                    + 3.098 * height_cm
                     - 4.330 * age
         END AS bmr,
         sex,
-        weight,
+        weight_kg,
         age
     FROM user_info
 ),
@@ -88,13 +92,13 @@ gross_rates AS (
                     THEN -95.7735
                         + 0.634 * clean.bpm
                         + 0.404 * daily_params.vo2
-                        + 0.394 * bmr.weight
+                        + 0.394 * bmr.weight_kg
                         + 0.271 * bmr.age
                 WHEN bmr.sex = 'female'
                     THEN -59.3954
                         + 0.450 * clean.bpm
                         + 0.380 * daily_params.vo2
-                        + 0.103 * bmr.weight
+                        + 0.103 * bmr.weight_kg
                         + 0.274 * bmr.age
             END
         ) / 251.04 AS gross_rate

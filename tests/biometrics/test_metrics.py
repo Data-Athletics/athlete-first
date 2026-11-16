@@ -102,8 +102,16 @@ async def test_effort_calculation(admin_client: AsyncClient, noop_user: User):
     assert effort.y == [pytest.approx(EXPECTED_EFFORT)]
 
 
-async def test_calorie_calculation(admin_client: AsyncClient, noop_user: User):
+async def test_calorie_calculation(
+    admin_client: AsyncClient, noop_user: User, db: AsyncSession
+):
     """Check that calories are calculated successfully"""
+
+    noop_user.height = 70
+    noop_user.weight = 154
+    noop_user.sex = "male"
+    noop_user.age = 30
+    await db.commit()
 
     response = await admin_client.get(create_biometrics_url(noop_user) + "/calories")
 
@@ -113,6 +121,7 @@ async def test_calorie_calculation(admin_client: AsyncClient, noop_user: User):
 
     assert calories.y
     assert all(isinstance(value, float) for value in calories.y)
+    assert calories.y[0] == pytest.approx(1707.3, abs=1)
 
 
 async def test_calorie_calculation_missing_user_data(
@@ -130,3 +139,15 @@ async def test_calorie_calculation_missing_user_data(
     assert response.json()["detail"] == (
         "User must have all of height, weight, sex, and age to calculate calories."
     )
+
+
+async def test_biometrics_upload_rejects_malformed_csv(
+    admin_client: AsyncClient, current_admin: User
+):
+    response = await admin_client.post(
+        create_biometrics_url(current_admin),
+        files={"file": ("invalid.csv", b"stream\nheart_rate\n", "text/csv")},
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "missing required column" in response.json()["detail"]

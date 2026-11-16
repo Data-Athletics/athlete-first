@@ -5,7 +5,7 @@ import sqlalchemy.exc
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 
 from app.auth.dependencies import CurrentUserDep, get_current_user
-from app.biometrics.decoder import decode_noop_csv
+from app.biometrics.decoder import BiometricsCSVError, decode_noop_csv
 from app.biometrics.dtos.AggregationsDTOs import (
     BiometricsUploadResponseDTO,
     GraphResponseDTO,
@@ -39,13 +39,18 @@ async def create_biometrics_route(
 ):
     """Create many biometrics rows from a csv upload"""
 
-    if file.filename and not file.filename.endswith(".csv"):
+    if not file.filename or not file.filename.lower().endswith(".csv"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid file format. Please upload a CSV file.",
         )
 
-    noop_data = decode_noop_csv(file.file)
+    try:
+        noop_data = decode_noop_csv(file.file)
+    except BiometricsCSVError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
 
     try:
         inserted, duplicates = await bulk_upload_noop_data(db, user.id, noop_data)

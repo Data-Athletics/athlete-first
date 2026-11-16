@@ -49,6 +49,11 @@ async def test_user_login(db: AsyncSession, client: AsyncClient):
     assert "id" in data
     assert data["id"] == user.id
 
+    res = await client.get(
+        "/user/me", headers={"Authorization": "Bearer malformed-token"}
+    )
+    assert res.status_code == 401
+
 
 async def test_user_registration(db: AsyncSession, client: AsyncClient):
     """Unauthenticated users should be able to register an account"""
