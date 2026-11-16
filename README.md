@@ -85,7 +85,7 @@ Generate one month of sample biometric data:
 python3 utilities/generate_biometrics.py
 ```
 
-This writes `~/biometrics_one_month.csv`. Use `--days`, `--sample-seconds`, or `--output` to customize it.
+This writes a timestamped file such as `~/biometrics_one_month_2026-11-16T03-45-45.199Z.csv`. Use `--output-dir` to choose a directory, or `--output` to provide an exact file path. `--days` and `--sample-seconds` customize the generated data.
 
 Calculate HRV:
 
