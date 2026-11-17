@@ -1,7 +1,8 @@
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
-from jwt import ExpiredSignatureError
+from jwt import ExpiredSignatureError, InvalidTokenError
+from pydantic import ValidationError
 from sqlalchemy import select
 
 from app.auth.config import oauth2_scheme
@@ -18,11 +19,16 @@ async def get_current_user(
     # Get and verify the token's claims
     try:
         claims = TokenClaimsDTO.decode(token)
+        user_id = int(claims.sub)
     except ExpiredSignatureError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Token is expired")
+    except (InvalidTokenError, ValidationError, ValueError) as exc:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED, detail="Unable to authenticate user"
+        ) from exc
 
     # Get the user associated with the token
-    rows = await db.execute(select(User).where(User.id == int(claims.sub)))
+    rows = await db.execute(select(User).where(User.id == user_id))
     user = rows.scalar_one_or_none()
 
     if user is None or not user.is_active:

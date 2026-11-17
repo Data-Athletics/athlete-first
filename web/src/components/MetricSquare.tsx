@@ -4,15 +4,21 @@ import {
   BarChart,
   CartesianGrid,
   ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import type { GraphData } from "../types/Biometrics";
+import { formatMetricValue } from "../utils/metric";
 import "./MetricSquare.css";
 
 interface BaseMetricSquareProps {
   type: "text" | "graph";
   title: string;
+  unit?: string;
+  description: string;
+  playerName?: string;
+  compactHeader?: boolean;
 }
 
 interface MetricSquareValueProps extends BaseMetricSquareProps {
@@ -31,7 +37,26 @@ const MetricSquare: React.FC<MetricSquareProps> = (props) => {
   return (
     <>
       <div className="metric-container">
-        <h5 className="metric-title">{props.title}</h5>
+        <MetricInfo title={props.title} description={props.description} />
+        <div
+          className={`metric-heading${
+            props.compactHeader ? " is-compact" : ""
+          }`}
+        >
+          {props.playerName && (
+            <span className="metric-player">{props.playerName}</span>
+          )}
+          {!props.compactHeader && (
+            <>
+              <span className="metric-title-row">
+                <h5 className="metric-title">{props.title}</h5>
+              </span>
+              {props.unit && (
+                <span className="metric-details">({props.unit})</span>
+              )}
+            </>
+          )}
+        </div>
         <div className="value-container">
           {(() => {
             switch (props.type) {
@@ -66,7 +91,16 @@ const MetricSquare: React.FC<MetricSquareProps> = (props) => {
                         dy={-8}
                       />
 
-                      <YAxis width={30} domain={[0, "auto"]} />
+                      <YAxis
+                        width={30}
+                        tick={{ fontSize: 15, fill: "#9ca3af" }}
+                        domain={[0, "auto"]}
+                        tickFormatter={formatMetricValue}
+                      />
+
+                      <Tooltip
+                        formatter={(value) => formatMetricValue(Number(value))}
+                      />
 
                       <Bar
                         dataKey="value"
@@ -85,5 +119,23 @@ const MetricSquare: React.FC<MetricSquareProps> = (props) => {
     </>
   );
 };
+
+const MetricInfo: React.FC<{ title: string; description: string }> = ({
+  title,
+  description,
+}) => (
+  <span className="metric-info-wrapper">
+    <button
+      className="metric-info"
+      type="button"
+      aria-label={`About ${title}`}
+    >
+      i
+    </button>
+    <span className="metric-info-tooltip" role="tooltip">
+      {description}
+    </span>
+  </span>
+);
 
 export default MetricSquare;

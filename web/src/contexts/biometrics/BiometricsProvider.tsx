@@ -2,33 +2,46 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { api } from "../../api/axios";
 import type {
-  CaloriesResponse,
-  DataPoint,
-  EffortResponse,
   GraphData,
   GraphResponse,
   HRVResponse,
+  MetricSnapshot,
   RespiratoryRateResponse,
   RHRResponse,
-  SkinTempDeltaResponse,
   UploadResponse,
 } from "../../types/Biometrics";
-import { twoMonthsBack } from "../../utils/dates";
+import { useTeam } from "../team/TeamContext";
 import { useUser } from "../user/UserContext";
 import { BiometricsContext } from "./BiometricsContext";
 
+interface MetricsSnapshot {
+  caloriesGraph: GraphData | null;
+  hrv: number | null;
+  rhr: number | null;
+  respiratoryRate: number | null;
+  effortGraph: GraphData | null;
+  bpmGraph: GraphData | null;
+  updatedAt: number;
+}
+
+const getCurrentTimestamp = () => Date.now();
+
 export function BiometricsProvider({ children }: { children: ReactNode }) {
   const { user } = useUser();
+  const { dataSharingLoading, ownDataSharingBlocked } = useTeam();
   const { pathname } = useLocation();
   const loadedUserId = useRef<number | null>(null);
+  const metricsCache = useRef(new Map<number, MetricsSnapshot>());
+  const latestMetricsRequest = useRef(0);
 
   const [loading, setLoading] = useState(true);
-  const [calories, setCalories] = useState<number | null>(null);
-  const [skinTempDelta, setSkinTempDelta] = useState<number | null>(null);
+  const [metricsRefreshing, setMetricsRefreshing] = useState(false);
+  const [metricsUpdatedAt, setMetricsUpdatedAt] = useState<number | null>(null);
+  const [caloriesGraph, setCaloriesGraph] = useState<GraphData | null>(null);
   const [hrv, setHrv] = useState<number | null>(null);
   const [rhr, setRhr] = useState<number | null>(null);
   const [respiratoryRate, setRespiratoryRate] = useState<number | null>(null);
-  const [effort, setEffort] = useState<number | null>(null);
+  const [effortGraph, setEffortGraph] = useState<GraphData | null>(null);
   const [bpmGraph, setBpmGraph] = useState<GraphData | null>(null);
 
   const uploadCsv = async (file: File, user_id: number) => {
@@ -45,102 +58,198 @@ export function BiometricsProvider({ children }: { children: ReactNode }) {
     return data;
   };
 
-  const getCalories = async (user_id: number) => {
-    const { data } = await api.get<CaloriesResponse>(
+  const fetchCalories = async (user_id: number): Promise<GraphData> => {
+    const { data } = await api.get<GraphResponse>(
       `/biometrics/${user_id}/calories`,
     );
 
-    setCalories(data.calories);
+    return transformGraphData(data);
   };
 
-  const getSkinTempDelta = async (user_id: number) => {
-    const { data } = await api.get<SkinTempDeltaResponse>(
-      `/biometrics/${user_id}/skin-temp-delta`,
-    );
-
-    setSkinTempDelta(data.skin_temp_delta);
+  const fetchHRV = async (user_id: number): Promise<number | null> => {
+    const { data } = await api.get<HRVResponse>(`/biometrics/${user_id}/hrv`);
+    return data.hrv;
   };
 
-  const getHRV = async (user_id: number) => {
-    const { data } = await api.get<HRVResponse>(`/biometrics/${user_id}/hrv`, {
-      params: { end_time: new Date() },
-    });
-    setHrv(data.hrv);
+  const fetchRHR = async (user_id: number): Promise<number | null> => {
+    const { data } = await api.get<RHRResponse>(`/biometrics/${user_id}/rhr`);
+    return data.rhr;
   };
 
-  const getRHR = async (user_id: number) => {
-    const end = new Date();
-    const start = twoMonthsBack(end);
-    const { data } = await api.get<RHRResponse>(`/biometrics/${user_id}/rhr`, {
-      params: { start_time: start, end_time: end },
-    });
-    setRhr(data.rhr);
-  };
-
-  const getRespiratoryRate = async (user_id: number) => {
+  const fetchRespiratoryRate = async (
+    user_id: number,
+  ): Promise<number | null> => {
     const { data } = await api.get<RespiratoryRateResponse>(
       `/biometrics/${user_id}/respiratory-rate`,
     );
-    setRespiratoryRate(data.respiratory_rate);
+    return data.respiratory_rate;
   };
 
-  const getEffort = async (user_id: number) => {
-    const { data } = await api.get<EffortResponse>(
+  const fetchEffort = async (user_id: number): Promise<GraphData> => {
+    const { data } = await api.get<GraphResponse>(
       `/biometrics/${user_id}/effort`,
     );
-    setEffort(data.effort);
+    return transformGraphData(data);
+  };
+
+  const fetchBpmGraph = async (
+    user_id: number,
+    start?: Date,
+    end?: Date,
+  ): Promise<GraphData> => {
+    const { data } = await api.get<GraphResponse>(
+      `/biometrics/${user_id}/bpm`,
+      {
+        params: { start_time: start, end_time: end },
+      },
+    );
+
+    return transformGraphData(data);
+  };
+
+  const getCalories = async (user_id: number): Promise<GraphData> => {
+    const graph = await fetchCalories(user_id);
+    setCaloriesGraph(graph);
+    return graph;
+  };
+
+  const getHRV = async (user_id: number): Promise<number | null> => {
+    const value = await fetchHRV(user_id);
+    setHrv(value);
+    return value;
+  };
+
+  const getRHR = async (user_id: number): Promise<number | null> => {
+    const value = await fetchRHR(user_id);
+    setRhr(value);
+    return value;
+  };
+
+  const getRespiratoryRate = async (user_id: number): Promise<number | null> => {
+    const value = await fetchRespiratoryRate(user_id);
+    setRespiratoryRate(value);
+    return value;
+  };
+
+  const getEffort = async (user_id: number): Promise<GraphData> => {
+    const graph = await fetchEffort(user_id);
+    setEffortGraph(graph);
+    return graph;
   };
 
   const getBpmGraph = async (
     user_id: number,
-    start: Date = twoMonthsBack(),
-    end: Date = new Date(),
-  ) => {
-    const { data } = await api.get<GraphResponse>(
-      `/biometrics/${user_id}/bpm`,
-      {
-        params: {
-          start_time: start,
-          end_time: end,
-        },
-      },
-    );
+    start?: Date,
+    end?: Date,
+  ): Promise<GraphData> => {
+    const graph = await fetchBpmGraph(user_id, start, end);
+    setBpmGraph(graph);
+    return graph;
+  };
 
-    setBpmGraph({ start: start, end: end, points: transformGraphData(data) });
-    console.log(data);
+  const getMetricsSnapshot = async (
+    user_id: number,
+  ): Promise<MetricSnapshot> => {
+    const [caloriesResult, hrvResult, rhrResult, respiratoryResult, effortResult, bpmResult] =
+      await Promise.allSettled([
+        fetchCalories(user_id),
+        fetchHRV(user_id),
+        fetchRHR(user_id),
+        fetchRespiratoryRate(user_id),
+        fetchEffort(user_id),
+        fetchBpmGraph(user_id),
+      ]);
+
+    return {
+      caloriesGraph:
+        caloriesResult.status === "fulfilled" ? caloriesResult.value : null,
+      hrv: hrvResult.status === "fulfilled" ? hrvResult.value : null,
+      rhr: rhrResult.status === "fulfilled" ? rhrResult.value : null,
+      respiratoryRate:
+        respiratoryResult.status === "fulfilled"
+          ? respiratoryResult.value
+          : null,
+      effortGraph:
+        effortResult.status === "fulfilled" ? effortResult.value : null,
+      bpmGraph: bpmResult.status === "fulfilled" ? bpmResult.value : null,
+    };
+  };
+
+  const applyMetricsSnapshot = (snapshot: MetricsSnapshot) => {
+    setCaloriesGraph(snapshot.caloriesGraph);
+    setHrv(snapshot.hrv);
+    setRhr(snapshot.rhr);
+    setRespiratoryRate(snapshot.respiratoryRate);
+    setEffortGraph(snapshot.effortGraph);
+    setBpmGraph(snapshot.bpmGraph);
+    setMetricsUpdatedAt(snapshot.updatedAt);
   };
 
   const getMetrics = async (user_id: number) => {
-    setLoading(true);
-    await Promise.allSettled([
-      getCalories(user_id),
-      getSkinTempDelta(user_id),
-      getHRV(user_id),
-      getRHR(user_id),
-      getRespiratoryRate(user_id),
-      getEffort(user_id),
-      getBpmGraph(user_id),
-    ]);
-    setLoading(false);
+    const cachedSnapshot = metricsCache.current.get(user_id);
+    if (cachedSnapshot) {
+      applyMetricsSnapshot(cachedSnapshot);
+      setLoading(false);
+    } else {
+      clearMetrics();
+      setLoading(true);
+    }
+
+    const requestId = latestMetricsRequest.current + 1;
+    latestMetricsRequest.current = requestId;
+    setMetricsRefreshing(true);
+
+    const [caloriesResult, hrvResult, rhrResult, respiratoryResult, effortResult, bpmResult] =
+      await Promise.allSettled([
+      fetchCalories(user_id),
+      fetchHRV(user_id),
+      fetchRHR(user_id),
+      fetchRespiratoryRate(user_id),
+      fetchEffort(user_id),
+      fetchBpmGraph(user_id),
+      ]);
+
+    const snapshot: MetricsSnapshot = {
+      caloriesGraph:
+        caloriesResult.status === "fulfilled" ? caloriesResult.value : null,
+      hrv: hrvResult.status === "fulfilled" ? hrvResult.value : null,
+      rhr: rhrResult.status === "fulfilled" ? rhrResult.value : null,
+      respiratoryRate:
+        respiratoryResult.status === "fulfilled"
+          ? respiratoryResult.value
+          : null,
+      effortGraph:
+        effortResult.status === "fulfilled" ? effortResult.value : null,
+      bpmGraph: bpmResult.status === "fulfilled" ? bpmResult.value : null,
+      updatedAt: getCurrentTimestamp(),
+    };
+
+    metricsCache.current.set(user_id, snapshot);
+    if (requestId === latestMetricsRequest.current) {
+      applyMetricsSnapshot(snapshot);
+      setLoading(false);
+      setMetricsRefreshing(false);
+    }
   };
 
   const clearMetrics = () => {
-    setCalories(null);
-    setSkinTempDelta(null);
+    setCaloriesGraph(null);
     setHrv(null);
     setRhr(null);
     setRespiratoryRate(null);
-    setEffort(null);
+    setEffortGraph(null);
     setBpmGraph(null);
+    setMetricsUpdatedAt(null);
   };
 
   useEffect(() => {
-    setLoading(true);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    if (pathname !== "/dashboard" || !user || user.is_staff) {
+    if (
+      pathname !== "/dashboard" ||
+      !user ||
+      user.is_staff ||
+      dataSharingLoading ||
+      ownDataSharingBlocked
+    ) {
       loadedUserId.current = null;
       return;
     }
@@ -151,27 +260,34 @@ export function BiometricsProvider({ children }: { children: ReactNode }) {
     void getMetrics(user.id).catch((error) => {
       console.error("Failed to load metrics:", error);
     });
-  }, [pathname, user?.id]);
+  }, [
+    dataSharingLoading,
+    ownDataSharingBlocked,
+    pathname,
+    user?.id,
+    user?.is_staff,
+  ]);
 
   return (
     <BiometricsContext.Provider
       value={{
         loading,
-        calories,
-        skinTempDelta,
+        metricsRefreshing,
+        metricsUpdatedAt,
+        caloriesGraph,
         hrv,
         rhr,
         respiratoryRate,
-        effort,
+        effortGraph,
         bpmGraph,
         uploadCsv,
         getCalories,
-        getSkinTempDelta,
         getHRV,
         getRHR,
         getRespiratoryRate,
         getEffort,
         getBpmGraph,
+        getMetricsSnapshot,
         getMetrics,
         clearMetrics,
       }}
@@ -181,12 +297,16 @@ export function BiometricsProvider({ children }: { children: ReactNode }) {
   );
 }
 
-const transformGraphData = (graphData: GraphResponse): DataPoint[] => {
-  return graphData.x.map((xValue, index) => ({
-    time: new Date(xValue).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    }),
-    value: graphData.y[index] ?? 0,
-  }));
+const transformGraphData = (graphData: GraphResponse): GraphData => {
+  return {
+    start: new Date(graphData.start),
+    end: new Date(graphData.end),
+    points: graphData.x.map((xValue, index) => ({
+      time: new Date(xValue).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      }),
+      value: graphData.y[index] ?? 0,
+    })),
+  };
 };

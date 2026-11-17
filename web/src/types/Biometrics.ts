@@ -13,13 +13,17 @@ export interface UploadResponse {
   code: number;
 }
 
-export interface CaloriesResponse {
-  calories: number;
-}
-
 export interface SkinTempDeltaResponse {
   skin_temp_delta: number;
 }
+
+export interface GraphResponse extends IntervalData {
+  x: Date[];
+  y: number[];
+}
+
+export type CaloriesResponse = GraphResponse;
+export type EffortResponse = GraphResponse;
 
 export interface HRVResponse extends IntervalData {
   hrv: number | null;
@@ -33,15 +37,15 @@ export interface RespiratoryRateResponse {
   respiratory_rate: number | null;
 }
 
-export interface EffortResponse {
-  effort: number | null;
-}
-
-export interface GraphResponse extends IntervalData {
-  x: Date[];
-  y: number[];
-}
-
 export interface GraphData extends IntervalData {
   points: DataPoint[];
+}
+
+export interface MetricSnapshot {
+  caloriesGraph: GraphData | null;
+  hrv: number | null;
+  rhr: number | null;
+  respiratoryRate: number | null;
+  effortGraph: GraphData | null;
+  bpmGraph: GraphData | null;
 }

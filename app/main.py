@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import APIRouter, FastAPI, Request, status
+from fastapi import APIRouter, FastAPI, HTTPException, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -78,7 +78,11 @@ async def handle_exceptions(request: Request, exc: Exception):
     headers = None
     code = None
 
-    if isinstance(exc, NotImplementedError):
+    if isinstance(exc, HTTPException):
+        detail = exc.detail
+        headers = exc.headers
+        code = exc.status_code
+    elif isinstance(exc, NotImplementedError):
         detail = "Not Implemented"
         code = status.HTTP_501_NOT_IMPLEMENTED
     else:

@@ -145,7 +145,16 @@ const Home: React.FC = () => {
             {loading ? (signingUp ? "Signing up..." : "Logging in...") : "Go"}
           </button>
         </div>
-        <h2 className="home-catch">Consent and Privacy for Athletes!!</h2>
+        <section className="home-catch" aria-labelledby="consent-privacy-heading">
+          <h2 id="consent-privacy-heading">Consent and Privacy for Athletes</h2>
+          <p>
+            Athlete First helps athletes and coaches understand biometric data,
+            track performance trends, and make better training decisions.
+            Athletes stay in control of which metrics they share with each
+            team, and coaches only see the information a player has consented
+            to share.
+          </p>
+        </section>
       </div>
     </>
   );

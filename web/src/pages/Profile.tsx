@@ -1,6 +1,7 @@
 import type React from "react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import TeamNavButton from "../components/TeamNavButton";
 import { useUser } from "../contexts/user/UserContext";
 import Nav from "../Nav";
 import { alertUser } from "../utils/alerts";
@@ -21,19 +22,30 @@ const Profile: React.FC = () => {
 
   const onUpdateClick = async () => {
     setUpdating(true);
-    const loweredSex = sex.toLowerCase();
-    if (loweredSex === "male" || loweredSex === "female") {
+    if (user?.is_staff) {
       await updateUser({
         name,
-        height,
-        weight,
-        sex: loweredSex,
-        age,
       });
       alertUser("Update Successful!");
-    } else {
-      alertUser("Sex must be either 'male' or 'female'");
+      setUpdating(false);
+      return;
     }
+
+    const loweredSex = sex.toLowerCase();
+    if (loweredSex !== "male" && loweredSex !== "female") {
+      alertUser("Sex must be either 'male' or 'female'");
+      setUpdating(false);
+      return;
+    }
+
+    await updateUser({
+      name,
+      height,
+      weight,
+      sex: loweredSex,
+      age,
+    });
+    alertUser("Update Successful!");
     setUpdating(false);
   };
 
@@ -52,7 +64,7 @@ const Profile: React.FC = () => {
       <Nav>
         <div className="nav-button-container">
           <button onClick={() => navigate("/dashboard")}>Dashboard</button>
-          <button onClick={() => navigate("/team")}>Team</button>
+          <TeamNavButton />
           <button onClick={logout}>Log out</button>
         </div>
       </Nav>
@@ -70,42 +82,46 @@ const Profile: React.FC = () => {
             onChange={(e) => setName(e.target.value)}
             required
           />
-          <h3 className="input-title">Height</h3>
-          <input
-            className="text-input"
-            type="number"
-            placeholder="Height"
-            value={height}
-            onChange={(e) => setHeight(Number(e.target.value))}
-            required
-          />
-          <h3 className="input-title">Weight</h3>
-          <input
-            className="text-input"
-            type="number"
-            placeholder="Weight"
-            value={weight}
-            onChange={(e) => setWeight(Number(e.target.value))}
-            required
-          />
-          <h3 className="input-title">Sex</h3>
-          <input
-            className="text-input"
-            type="text"
-            placeholder="Sex"
-            value={sex}
-            onChange={(e) => setSex(e.target.value)}
-            required
-          />
-          <h3 className="input-title">Age</h3>
-          <input
-            className="text-input"
-            type="number"
-            placeholder="Age"
-            value={age}
-            onChange={(e) => setAge(Number(e.target.value))}
-            required
-          />
+          {!user?.is_staff && (
+            <>
+              <h3 className="input-title">Height</h3>
+              <input
+                className="text-input"
+                type="number"
+                placeholder="Height"
+                value={height}
+                onChange={(e) => setHeight(Number(e.target.value))}
+                required
+              />
+              <h3 className="input-title">Weight</h3>
+              <input
+                className="text-input"
+                type="number"
+                placeholder="Weight"
+                value={weight}
+                onChange={(e) => setWeight(Number(e.target.value))}
+                required
+              />
+              <h3 className="input-title">Sex</h3>
+              <input
+                className="text-input"
+                type="text"
+                placeholder="Sex"
+                value={sex}
+                onChange={(e) => setSex(e.target.value)}
+                required
+              />
+              <h3 className="input-title">Age</h3>
+              <input
+                className="text-input"
+                type="number"
+                placeholder="Age"
+                value={age}
+                onChange={(e) => setAge(Number(e.target.value))}
+                required
+              />
+            </>
+          )}
           <button className="login-button" onClick={onUpdateClick}>
             {updating ? "Updating..." : "Update"}
           </button>

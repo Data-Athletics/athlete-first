@@ -26,7 +26,14 @@ from app.biometrics.services import (
     skin_temp_delta,
 )
 from app.core.database import ModelBase, get_db_session_context, get_engine
-from app.team.models import Team, TeamMembership, TeamMembershipStatusType, TeamRoleType
+from app.team.models import (
+    MembershipDsp,
+    Team,
+    TeamDsr,
+    TeamMembership,
+    TeamMembershipStatusType,
+    TeamRoleType,
+)
 from app.user.models import User
 
 app = typer.Typer()
@@ -120,6 +127,15 @@ def parse_datetime(value: str) -> datetime:
         ) from e
 
 
+async def get_metric_user(db, user_id: int) -> User:
+    """Load a metric target for a trusted internal CLI calculation."""
+
+    user = await db.get(User, user_id)
+    if user is None:
+        raise typer.BadParameter(f"User {user_id} does not exist.")
+    return user
+
+
 @app.command()
 @async_command
 async def upload_biometrics(
@@ -166,7 +182,10 @@ async def hrv(
     end = parse_datetime(end_time)
 
     async with get_db_session_context() as db:
-        hrv_value, start, end = await calculate_hrv(db, user_id, end)
+        user = await get_metric_user(db, user_id)
+        hrv_value, start, end = await calculate_hrv(
+            db, requestor=None, target_user=user, end_time=end
+        )
 
     print(f"HRV: <User id={user_id} hrv={hrv_value} start='{start}' end='{end}'>")
 
@@ -187,7 +206,10 @@ async def rhr(
         raise typer.BadParameter("Start time must be less than end time.")
 
     async with get_db_session_context() as db:
-        rhr_value, start, end = await rhr_over_interval(db, user_id, start, end)
+        user = await get_metric_user(db, user_id)
+        rhr_value, start, end = await rhr_over_interval(
+            db, requestor=None, target_user=user, start_time=start, end_time=end
+        )
 
     print(f"RHR: <User id={user_id} rhr={rhr_value} start='{start}' end='{end}'>")
 
@@ -200,7 +222,8 @@ async def skin_temp_delta_command(
     """Calculate skin temperature delta for a user."""
 
     async with get_db_session_context() as db:
-        delta = await skin_temp_delta(db, user_id)
+        user = await get_metric_user(db, user_id)
+        delta = await skin_temp_delta(db, requestor=None, target_user=user)
 
     print(f"Skin temp delta: <User id={user_id} skin_temp_delta={delta}>")
 
@@ -213,7 +236,8 @@ async def respiratory_rate_command(
     """Calculate respiratory rate for a user."""
 
     async with get_db_session_context() as db:
-        rate = await respiratory_rate(db, user_id)
+        user = await get_metric_user(db, user_id)
+        rate = await respiratory_rate(db, requestor=None, target_user=user)
 
     print(f"Respiratory rate: <User id={user_id} respiratory_rate={rate}>")
 
@@ -224,7 +248,10 @@ async def effort(user_id: Annotated[int, typer.Option(help="User ID")]):
     """Calculate effort/strain for a user."""
 
     async with get_db_session_context() as db:
-        effort_value = await calculate_effort_strain(db, user_id)
+        user = await get_metric_user(db, user_id)
+        effort_value = await calculate_effort_strain(
+            db, requestor=None, target_user=user
+        )
 
     print(f"Effort: <User id={user_id} effort={effort_value}>")
 
@@ -235,10 +262,7 @@ async def calories(user_id: Annotated[int, typer.Option(help="User ID")]):
     """Calculate estimated calories for a user."""
 
     async with get_db_session_context() as db:
-        user = await db.get(User, user_id)
-
-        if user is None:
-            raise typer.BadParameter(f"User {user_id} does not exist.")
+        user = await get_metric_user(db, user_id)
 
         if (
             user.height is None
@@ -251,7 +275,7 @@ async def calories(user_id: Annotated[int, typer.Option(help="User ID")]):
                 "and age to calculate calories."
             )
 
-        calorie_value = await calculate_calories(db, user_id)
+        calorie_value = await calculate_calories(db, requestor=None, target_user=user)
 
     print(f"Calories: <User id={user_id} calories={calorie_value}>")
 
@@ -272,7 +296,10 @@ async def bpm(
         raise typer.BadParameter("Start time must be less than end time.")
 
     async with get_db_session_context() as db:
-        data = await bulk_bpm_data(db, user_id, start, end)
+        user = await get_metric_user(db, user_id)
+        data = await bulk_bpm_data(
+            db, requestor=None, target_user=user, start_time=start, end_time=end
+        )
 
     print(
         f"BPM: <User id={user_id} "
@@ -342,6 +369,82 @@ async def create_membership(
             f"role={membership.role} "
             f"status={membership.status}>"
         )
+
+
+@app.command("seed-data-sharing")
+@async_command
+async def seed_data_sharing():
+    """Seed demo team requirements and athlete sharing policies."""
+
+    async with get_db_session_context() as db:
+        teams = await db.execute(
+            select(Team).where(Team.name.in_(["Team Alpha", "Team Beta"]))
+        )
+        teams_by_name = {team.name: team for team in teams.scalars()}
+        users = await db.execute(
+            select(User).where(
+                User.username.in_(
+                    ["player@email.com", "player2@email.com", "player3@email.com"]
+                )
+            )
+        )
+        users_by_username = {user.username: user for user in users.scalars()}
+
+        if len(teams_by_name) != 2 or len(users_by_username) != 3:
+            raise typer.BadParameter(
+                "Run the standard make seed users and teams before seeding sharing data."
+            )
+
+        team_alpha = teams_by_name["Team Alpha"]
+        team_beta = teams_by_name["Team Beta"]
+        team_alpha.dsr = TeamDsr(
+            content={"bpm_shared": True, "hrv_shared": True, "effort_shared": True}
+        )
+        team_beta.dsr = TeamDsr(
+            content={
+                "calories_shared": True,
+                "respiratory_rate_shared": True,
+                "skin_temp_delta_shared": True,
+            }
+        )
+
+        memberships = await db.execute(
+            select(TeamMembership).where(
+                TeamMembership.team_id.in_([team_alpha.id, team_beta.id]),
+                TeamMembership.user_id.in_(
+                    [user.id for user in users_by_username.values()]
+                ),
+            )
+        )
+        memberships_by_user_and_team = {
+            (membership.user_id, membership.team_id): membership
+            for membership in memberships.scalars()
+        }
+
+        alpha_player = memberships_by_user_and_team[
+            (users_by_username["player@email.com"].id, team_alpha.id)
+        ]
+        beta_player = memberships_by_user_and_team[
+            (users_by_username["player2@email.com"].id, team_beta.id)
+        ]
+
+        alpha_player.dsp = MembershipDsp(
+            content={"bpm_shared": False, "hrv_shared": True, "effort_shared": True}
+        )
+        beta_player.dsp = MembershipDsp(
+            content={
+                "calories_shared": True,
+                "respiratory_rate_shared": True,
+                "skin_temp_delta_shared": True,
+            }
+        )
+
+        await db.commit()
+
+    print(
+        "Seeded Team Alpha invalid BPM consent, Team Beta valid metric consent, "
+        "and a pending Team Alpha request."
+    )
 
 
 @app.command()

@@ -4,8 +4,6 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.biometrics.dtos.AggregationsDTOs import (
-    CaloriesResponseDTO,
-    EffortStrainResponseDTO,
     GraphResponseDTO,
     HRVResponseDTO,
     RespiratoryRateResponseDTO,
@@ -13,12 +11,7 @@ from app.biometrics.dtos.AggregationsDTOs import (
     SkinTempDeltaResponseDTO,
 )
 from app.user.models import User
-from tests.mock.biometrics.metrics import (
-    EXPECTED_EFFORT,
-    EXPECTED_HRV,
-    EXPECTED_RHR,
-    EXPECTED_SKIN_TEMP_DELTA,
-)
+from tests.mock.biometrics.metrics import EXPECTED_EFFORT, EXPECTED_SKIN_TEMP_DELTA
 from utilities.urls import create_biometrics_url
 
 
@@ -33,7 +26,8 @@ async def test_hrv_calculation(admin_client: AsyncClient, noop_user: User):
     assert response.status_code == 200
 
     hrv = HRVResponseDTO.model_validate(response.json())
-    assert hrv.hrv == pytest.approx(EXPECTED_HRV)
+    # A single daily value has no deviation from the daily mean.
+    assert hrv.hrv == pytest.approx(0)
 
 
 async def test_rhr_calculation(admin_client: AsyncClient, noop_user: User):
@@ -50,7 +44,8 @@ async def test_rhr_calculation(admin_client: AsyncClient, noop_user: User):
     assert response.status_code == 200
 
     rhr = RHRResponseDTO.model_validate(response.json())
-    assert rhr.rhr == pytest.approx(EXPECTED_RHR)
+    # A single daily value has no deviation from the daily mean.
+    assert rhr.rhr == pytest.approx(0)
 
 
 async def test_skin_temp_delta_calculation(admin_client: AsyncClient, noop_user: User):
@@ -80,7 +75,7 @@ async def test_bpm_list(admin_client: AsyncClient, noop_user: User):
     assert response.status_code == 200
 
     bpm = GraphResponseDTO.model_validate(response.json())
-    assert bpm.y == [52, 52, 53, 53, 54, 54]
+    assert bpm.y == [pytest.approx(53.0)]
 
 
 async def test_respiratory_rate_calculation(admin_client: AsyncClient, noop_user: User):
@@ -103,21 +98,30 @@ async def test_effort_calculation(admin_client: AsyncClient, noop_user: User):
 
     assert response.status_code == 200
 
-    effort = EffortStrainResponseDTO.model_validate(response.json())
-    assert effort.effort == pytest.approx(EXPECTED_EFFORT)
+    effort = GraphResponseDTO.model_validate(response.json())
+    assert effort.y == [pytest.approx(EXPECTED_EFFORT)]
 
 
-async def test_calorie_calculation(admin_client: AsyncClient, noop_user: User):
+async def test_calorie_calculation(
+    admin_client: AsyncClient, noop_user: User, db: AsyncSession
+):
     """Check that calories are calculated successfully"""
+
+    noop_user.height = 70
+    noop_user.weight = 154
+    noop_user.sex = "male"
+    noop_user.age = 30
+    await db.commit()
 
     response = await admin_client.get(create_biometrics_url(noop_user) + "/calories")
 
     assert response.status_code == 200
 
-    calories = CaloriesResponseDTO.model_validate(response.json())
+    calories = GraphResponseDTO.model_validate(response.json())
 
-    assert calories.calories is not None
-    assert isinstance(calories.calories, float)
+    assert calories.y
+    assert all(isinstance(value, float) for value in calories.y)
+    assert calories.y[0] == pytest.approx(1707.3, abs=1)
 
 
 async def test_calorie_calculation_missing_user_data(
@@ -135,3 +139,15 @@ async def test_calorie_calculation_missing_user_data(
     assert response.json()["detail"] == (
         "User must have all of height, weight, sex, and age to calculate calories."
     )
+
+
+async def test_biometrics_upload_rejects_malformed_csv(
+    admin_client: AsyncClient, current_admin: User
+):
+    response = await admin_client.post(
+        create_biometrics_url(current_admin),
+        files={"file": ("invalid.csv", b"stream\nheart_rate\n", "text/csv")},
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "missing required column" in response.json()["detail"]

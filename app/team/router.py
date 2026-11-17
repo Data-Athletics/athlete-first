@@ -32,6 +32,7 @@ from app.team.services import (
     list_non_approved_team_memberships,
     list_team_memberships,
     list_teams,
+    require_team_coach,
     update_team,
     update_team_membership,
 )
@@ -192,6 +193,7 @@ async def set_team_dsr_route(
 ):
     """Fully update/replace a team's data sharing requirements"""
 
+    await require_team_coach(db, team, user)
     payload = body.model_dump(exclude_unset=True)
 
     dsr: TeamDsr

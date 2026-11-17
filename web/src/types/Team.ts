@@ -29,6 +29,28 @@ export interface TeamMember extends TeamMembership {
   name: string;
 }
 
+export type DataSharingField =
+  | "bpm_shared"
+  | "rhr_shared"
+  | "calories_shared"
+  | "respiratory_rate_shared"
+  | "hrv_shared"
+  | "effort_shared"
+  | "skin_temp_delta_shared";
+
+export type DataSharingValues = Partial<
+  Record<DataSharingField, boolean | null>
+>;
+
+export interface TeamDataSharingRequirements extends DataSharingValues {
+  team_id: number;
+}
+
+export interface MembershipDataSharingPolicy extends DataSharingValues {
+  membership_id: number;
+  invalid_fields: string[];
+}
+
 export type TeamsResponse = Team[];
 export type MyTeamsResponse = MyTeam[];
 export type TeamMembersResponse = TeamMember[];

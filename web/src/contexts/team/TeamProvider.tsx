@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import axios from "axios";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { api } from "../../api/axios";
 import {
@@ -11,6 +12,9 @@ import {
   type MyTeam,
   type MyTeamsResponse,
   type TeamMembersResponse,
+  type DataSharingValues,
+  type MembershipDataSharingPolicy,
+  type TeamDataSharingRequirements,
 } from "../../types/Team";
 import { useUser } from "../user/UserContext";
 import { TeamContext } from "./TeamContext";
@@ -47,6 +51,16 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   const [teamsOptions, setTeamsOptions] = useState<Option[]>([]);
   const [team, setTeamState] = useState<Team | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dataSharingRequirements, setDataSharingRequirements] = useState<
+    Record<number, TeamDataSharingRequirements>
+  >({});
+  const [dataSharingPolicies, setDataSharingPolicies] = useState<
+    Record<number, MembershipDataSharingPolicy | null>
+  >({});
+  const [dataSharingLoading, setDataSharingLoading] = useState(true);
+  const [dataSharingRequestKey, setDataSharingRequestKey] = useState<string | null>(
+    null,
+  );
   const loadedUserId = useRef<number | null>(null);
   const lastTeamPageLoad = useRef<string | null>(null);
 
@@ -110,6 +124,48 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     } else {
       console.error("Cannot get memberships now because no team is selected");
     }
+  };
+
+  const getDataSharingRequirements = async (teamId: number) => {
+    const { data } = await api.get<TeamDataSharingRequirements>(
+      `/team/teams/${teamId}/data-sharing-requirements`,
+    );
+    setDataSharingRequirements((current) => ({ ...current, [teamId]: data }));
+    return data;
+  };
+
+  const getDataSharingPolicy = async (teamId: number) => {
+    try {
+      const { data } = await api.get<MembershipDataSharingPolicy>(
+        `/team/teams/${teamId}/data-sharing-policy`,
+      );
+      setDataSharingPolicies((current) => ({ ...current, [teamId]: data }));
+      return data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        setDataSharingPolicies((current) => ({ ...current, [teamId]: null }));
+        return null;
+      }
+
+      throw error;
+    }
+  };
+
+  const loadDataSharing = async (currentMyTeams: MyTeam[]) => {
+    const teamIds = [...new Set(currentMyTeams.map(({ id }) => id))];
+    if (teamIds.length === 0) {
+      setDataSharingLoading(false);
+      return;
+    }
+
+    setDataSharingLoading(true);
+    await Promise.all(
+      teamIds.map(async (teamId) => {
+        await getDataSharingRequirements(teamId);
+        await getDataSharingPolicy(teamId);
+      }),
+    );
+    setDataSharingLoading(false);
   };
 
   const createTeamMembershipRequest = async (
@@ -192,6 +248,30 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const updateTeamDataSharingRequirements = async (
+    teamId: number,
+    requirements: DataSharingValues,
+  ) => {
+    const { data } = await api.put<TeamDataSharingRequirements>(
+      `/team/teams/${teamId}/data-sharing-requirements`,
+      requirements,
+    );
+    setDataSharingRequirements((current) => ({ ...current, [teamId]: data }));
+    return data;
+  };
+
+  const updateMembershipDataSharingPolicy = async (
+    teamId: number,
+    policy: DataSharingValues,
+  ) => {
+    const { data } = await api.put<MembershipDataSharingPolicy>(
+      `/team/teams/${teamId}/data-sharing-policy`,
+      policy,
+    );
+    setDataSharingPolicies((current) => ({ ...current, [teamId]: data }));
+    return data;
+  };
+
   const deleteTeamMembership = async (teamId: number, membershipId: number) => {
     await api.delete(`/team/teams/${teamId}/memberships/${membershipId}`);
     await getTeams();
@@ -199,6 +279,8 @@ export function TeamProvider({ children }: { children: ReactNode }) {
 
   const getTeams = async () => {
     setLoading(true);
+    setDataSharingLoading(true);
+    setDataSharingRequestKey(user ? `${user.id}:${location.key}` : null);
     const { data } = await api.get<MyTeamsResponse>("/team/teams/me");
     const approvedTeams = data
       .filter(({ membership }) => membership.status === "approve")
@@ -220,6 +302,10 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     void loadTeamMembershipRequests(approvedTeams, data).catch((error) =>
       console.error("Failed to load team requests:", error),
     );
+    void loadDataSharing(data).catch((error) => {
+      console.error("Failed to load data sharing settings:", error);
+      setDataSharingLoading(false);
+    });
     if (!savedTeam) setLoading(false);
   };
 
@@ -254,6 +340,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       void getTeams().catch((error) => {
         console.error("Failed to refresh teams:", error);
         setLoading(false);
+        setDataSharingLoading(false);
       });
       return;
     }
@@ -264,6 +351,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     void getTeams().catch((error) => {
       console.error("Failed to load teams:", error);
       setLoading(false);
+      setDataSharingLoading(false);
     });
   }, [location.key, location.pathname, user?.id]);
 
@@ -317,6 +405,39 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     }
   }, [team]);
 
+  const isDataSharingLoading =
+    dataSharingLoading ||
+    (location.pathname === "/team" &&
+      user !== null &&
+      dataSharingRequestKey !== `${user.id}:${location.key}`);
+
+  const ownDataSharingBlocked = useMemo(() => {
+    if (isDataSharingLoading || user?.is_staff) return false;
+
+    return myTeams
+      .filter(
+        ({ membership }) =>
+          membership.status === "approve" && membership.role === "athlete",
+      )
+      .some(({ id }) => {
+        const policy = dataSharingPolicies[id];
+        return (
+          policy === null ||
+          policy === undefined ||
+          policy.invalid_fields.length > 0
+        );
+      });
+  }, [
+    dataSharingPolicies,
+    isDataSharingLoading,
+    myTeams,
+    user?.is_staff,
+  ]);
+
+  const hasDataSharingAttention =
+    !user?.is_staff &&
+    (ownDataSharingBlocked || teamMembershipRequests.length > 0);
+
   return (
     <TeamContext.Provider
       value={{
@@ -341,6 +462,13 @@ export function TeamProvider({ children }: { children: ReactNode }) {
         deleteTeamMembership,
         teamMembership,
         setTeamMembership,
+        dataSharingRequirements,
+        dataSharingPolicies,
+        dataSharingLoading: isDataSharingLoading,
+        ownDataSharingBlocked,
+        hasDataSharingAttention,
+        updateTeamDataSharingRequirements,
+        updateMembershipDataSharingPolicy,
       }}
     >
       {children}
