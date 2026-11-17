@@ -35,7 +35,9 @@ class User(ModelBase):
     """Age in years"""
 
     # Relationships
-    memberships: Mapped[list["TeamMembership"]] = relationship(back_populates="user")
+    memberships: Mapped[list["TeamMembership"]] = relationship(
+        back_populates="user", passive_deletes=True, lazy="selectin"
+    )
 
     # Computed fields
     can_login: Mapped[bool] = mapped_column(

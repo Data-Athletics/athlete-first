@@ -6,6 +6,7 @@ from app.team.dependencies import (
     CurrentUserTeamMembership,
     TeamByIdDep,
     TeamMembershipByIdDep,
+    current_user_is_team_coach_dep,
 )
 from app.team.dtos.member_dsp_dto import MembershipDspDTO, SetMembershipDspDTO
 from app.team.dtos.team_dsr_dto import SetTeamDsrDTO, TeamDsrDTO
@@ -32,10 +33,10 @@ from app.team.services import (
     list_non_approved_team_memberships,
     list_team_memberships,
     list_teams,
-    require_team_coach,
     update_team,
     update_team_membership,
 )
+from app.user.dependencies import current_user_is_staff_dep
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
@@ -53,7 +54,12 @@ async def list_teams_route(db: AsyncSessionDep):
     return await list_teams(db)
 
 
-@teams_router.post("", response_model=TeamDTO, status_code=status.HTTP_201_CREATED)
+@teams_router.post(
+    "",
+    response_model=TeamDTO,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(current_user_is_staff_dep)],
+)
 async def create_team_route(db: AsyncSessionDep, body: CreateTeamDTO):
     """Create a new team"""
 
@@ -187,13 +193,16 @@ async def retrieve_team_dsr_route(team: TeamByIdDep):
     return get_effective_team_dsr(team)
 
 
-@team_dsr_router.put("", response_model=TeamDsrDTO)
+@team_dsr_router.put(
+    "",
+    response_model=TeamDsrDTO,
+    dependencies=[Depends(current_user_is_team_coach_dep)],
+)
 async def set_team_dsr_route(
-    db: AsyncSessionDep, team: TeamByIdDep, user: CurrentUserDep, body: SetTeamDsrDTO
+    db: AsyncSessionDep, team: TeamByIdDep, body: SetTeamDsrDTO
 ):
     """Fully update/replace a team's data sharing requirements"""
 
-    await require_team_coach(db, team, user)
     payload = body.model_dump(exclude_unset=True)
 
     dsr: TeamDsr

@@ -1,15 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import SecretStr
-from sqlalchemy import desc, select
 from sqlalchemy.exc import IntegrityError
 
 from app.auth.dependencies import CurrentUserDep, get_current_user
 from app.auth.services import get_password_hash
 from app.core.dependencies import AsyncSessionDep
-from app.user.dependencies import UserByIdDep
+from app.team.dependencies import current_user_is_any_coach_dep
+from app.user.dependencies import UserByIdDep, current_user_is_staff_dep
 from app.user.dtos.user_dto import CreateUserDTO, UpdateMeDTO, UpdateUserDTO, UserDTO
-from app.user.models import User
-from app.user.services import create_user
+from app.user.services import create_user, list_users
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
@@ -19,17 +18,25 @@ router = APIRouter(dependencies=[Depends(get_current_user)])
 # -------------------------------
 
 users_router = APIRouter(prefix="/users")
+users_staff_router = APIRouter(
+    prefix="/users", dependencies=[Depends(current_user_is_staff_dep)]
+)
 
 
-@users_router.get("", response_model=list[UserDTO])
-async def list_users_route(db: AsyncSessionDep):
+@users_router.get(
+    "",
+    response_model=list[UserDTO],
+    dependencies=[Depends(current_user_is_any_coach_dep)],
+)
+async def list_users_route(db: AsyncSessionDep, current_user: CurrentUserDep):
     """Get a list of users from the database"""
 
-    res = await db.execute(select(User).order_by(desc(User.created_at)))
-    return res.scalars().all()
+    return await list_users(db, current_user=current_user)
 
 
-@users_router.post("", response_model=UserDTO, status_code=status.HTTP_201_CREATED)
+@users_staff_router.post(
+    "", response_model=UserDTO, status_code=status.HTTP_201_CREATED
+)
 async def create_user_route(db: AsyncSessionDep, body: CreateUserDTO):
     """Create a new user"""
 
@@ -37,14 +44,18 @@ async def create_user_route(db: AsyncSessionDep, body: CreateUserDTO):
     return await create_user(db, **data)
 
 
-@users_router.get("/{user_id}", response_model=UserDTO)
+@users_router.get(
+    "/{user_id}",
+    response_model=UserDTO,
+    dependencies=[Depends(current_user_is_any_coach_dep)],
+)
 async def retrieve_user_route(user: UserByIdDep):
     """Get a single user by their id"""
 
     return user
 
 
-@users_router.patch("/{user_id}", response_model=UserDTO)
+@users_staff_router.patch("/{user_id}", response_model=UserDTO)
 async def update_user_route(
     db: AsyncSessionDep, user: UserByIdDep, body: UpdateUserDTO
 ):
@@ -69,7 +80,7 @@ async def update_user_route(
     return user
 
 
-@users_router.delete("/{user_id}", response_model=UserDTO)
+@users_staff_router.delete("/{user_id}", response_model=UserDTO)
 async def delete_user_route(db: AsyncSessionDep, user: UserByIdDep):
     """Delete user by id"""
 
@@ -80,6 +91,7 @@ async def delete_user_route(db: AsyncSessionDep, user: UserByIdDep):
 
 
 router.include_router(users_router)
+router.include_router(users_staff_router)
 
 # -------------------------------
 # Current User (me) Routes

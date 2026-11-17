@@ -7,6 +7,7 @@ from app.team.models import (
     TeamDsr,
     TeamMembership,
     TeamMembershipStatusType,
+    TeamRoleType,
 )
 from app.user.models import User
 
@@ -14,6 +15,7 @@ from app.user.models import User
 async def create_test_team(
     db: AsyncSession | None = None,
     user_ids: list[int] | None = None,
+    coach_user_ids: list[int] | None = None,
     users: list[User] | None = None,
     create_dsps: bool = False,
     create_dsr: bool = False,
@@ -44,7 +46,18 @@ async def create_test_team(
             )
             for user_id in user_ids
         ]
-        db.add_all(mems)
+
+        coaches = [
+            TeamMembership(
+                user_id=user_id,
+                team_id=team.id,
+                role=TeamRoleType.COACH,
+                status=TeamMembershipStatusType.APPROVE,
+            )
+            for user_id in (coach_user_ids or [])
+        ]
+
+        db.add_all([*mems, *coaches])
         await db.flush()
 
         if create_dsps:

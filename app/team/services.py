@@ -72,20 +72,24 @@ async def get_team_by_id(db: AsyncSessionDep, team_id: Annotated[int, Path()]) -
     return team
 
 
-async def require_team_coach(db: AsyncSession, team: Team, user: User) -> None:
+async def require_team_coach(
+    db: AsyncSession, user: User, team: Team | None = None
+) -> None:
     """Require an approved coach membership before changing team requirements."""
 
     if user.is_admin or user.is_staff:
         return
 
-    rows = await db.execute(
-        select(TeamMembership).where(
-            TeamMembership.team_id == team.id,
-            TeamMembership.user_id == user.id,
-            TeamMembership.role == TeamRoleType.COACH,
-            TeamMembership.status == TeamMembershipStatusType.APPROVE,
-        )
+    query = select(TeamMembership).where(
+        TeamMembership.user_id == user.id,
+        TeamMembership.role == TeamRoleType.COACH,
+        TeamMembership.status == TeamMembershipStatusType.APPROVE,
     )
+
+    if team is not None:
+        query = query.where(TeamMembership.team_id == team.id)
+
+    rows = await db.execute(query)
     if rows.scalar_one_or_none() is None:
         raise HTTPException(
             status.HTTP_403_FORBIDDEN,

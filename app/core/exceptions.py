@@ -7,7 +7,7 @@ from app.core.dtos import PermissionDeniedReason
 
 
 class PermissionException(HTTPException):
-    """Exception raised when user is not allowed to do an action"""
+    """403 Exception raised when user is not allowed to do an action"""
 
     def __init__(
         self,
