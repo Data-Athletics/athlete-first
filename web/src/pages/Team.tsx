@@ -132,6 +132,8 @@ const TeamPage: React.FC = () => {
   };
 
   const onRemovePlayer = async (teamId: number, membershipId: number) => {
+    if (!window.confirm("Remove this athlete from the team?")) return;
+
     const actionKey = `remove:${teamId}:${membershipId}`;
     setLoadingAction(actionKey);
     try {
@@ -256,6 +258,10 @@ const TeamPage: React.FC = () => {
   };
 
   const onLeaveTeam = async (teamId: number, membershipId: number) => {
+    if (!window.confirm("Leave this team? You can request to join again later.")) {
+      return;
+    }
+
     const actionKey = `leave:${teamId}:${membershipId}`;
     setLoadingAction(actionKey);
     try {

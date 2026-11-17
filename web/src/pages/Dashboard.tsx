@@ -21,6 +21,7 @@ const METRIC_DEFINITIONS = [
     categoryLabel: "Calories",
     title: "Per-day Average Calories",
     unit: "kcal/day",
+    description: "Estimated energy burned each day. It can help athletes and coaches compare fueling needs with training load.",
     type: "graph",
   },
   {
@@ -28,6 +29,7 @@ const METRIC_DEFINITIONS = [
     categoryLabel: "HRV",
     title: "HRV Deviation",
     unit: "ms",
+    description: "The change in heart-rate variability from the athlete's usual baseline. It can provide context about recovery and stress.",
     type: "text",
   },
   {
@@ -35,6 +37,7 @@ const METRIC_DEFINITIONS = [
     categoryLabel: "RHR",
     title: "RHR Deviation",
     unit: "bpm",
+    description: "The change in resting heart rate from baseline. It can help identify changes in recovery, fatigue, or readiness.",
     type: "text",
   },
   {
@@ -42,6 +45,7 @@ const METRIC_DEFINITIONS = [
     categoryLabel: "Respiratory rate",
     title: "Respiratory Rate Deviation",
     unit: "breaths/min",
+    description: "The change in breathing rate from baseline. It can add useful context when monitoring recovery or wellness trends.",
     type: "text",
   },
   {
@@ -49,6 +53,7 @@ const METRIC_DEFINITIONS = [
     categoryLabel: "Effort",
     title: "Per-day Average Effort",
     unit: "strain",
+    description: "An estimate of daily exertion or strain. It can help coaches understand training load and plan recovery.",
     type: "graph",
   },
   {
@@ -56,6 +61,7 @@ const METRIC_DEFINITIONS = [
     categoryLabel: "BPM",
     title: "Per-day Average BPM",
     unit: "bpm",
+    description: "Average beats per minute across the day. It can help show cardiovascular workload and changes in activity intensity.",
     type: "graph",
   },
 ] as const;
@@ -263,21 +269,6 @@ const Dashboard: React.FC = () => {
         <div className="nav-button-container">
           {user?.is_staff && (
             <SelectInput
-              options={approvedTeamMembershipsOptions}
-              value={
-                teamMembership
-                  ? {
-                      value: String(teamMembership.id),
-                      label: teamMembership.name,
-                    }
-                  : { value: "all", label: "All" }
-              }
-              onChange={handleMembershipChange}
-              placeholder="Select player..."
-            />
-          )}
-          {user?.is_staff && (
-            <SelectInput
               options={teamsOptions}
               value={
                 team
@@ -289,6 +280,21 @@ const Dashboard: React.FC = () => {
               }
               onChange={handleTeamChange}
               placeholder="Select team..."
+            />
+          )}
+          {user?.is_staff && (
+            <SelectInput
+              options={approvedTeamMembershipsOptions}
+              value={
+                teamMembership
+                  ? {
+                      value: String(teamMembership.id),
+                      label: teamMembership.name,
+                    }
+                  : { value: "all", label: "All" }
+              }
+              onChange={handleMembershipChange}
+              placeholder="Select athlete..."
             />
           )}
           <TeamNavButton />
@@ -479,6 +485,7 @@ const renderMetricSquare = (
   const commonProps = {
     title: definition.title,
     unit: definition.unit,
+    description: definition.description,
     playerName,
     compactHeader: Boolean(playerName),
   };

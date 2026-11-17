@@ -16,6 +16,7 @@ interface BaseMetricSquareProps {
   type: "text" | "graph";
   title: string;
   unit?: string;
+  description: string;
   playerName?: string;
   compactHeader?: boolean;
 }
@@ -36,6 +37,7 @@ const MetricSquare: React.FC<MetricSquareProps> = (props) => {
   return (
     <>
       <div className="metric-container">
+        <MetricInfo title={props.title} description={props.description} />
         <div
           className={`metric-heading${
             props.compactHeader ? " is-compact" : ""
@@ -46,7 +48,9 @@ const MetricSquare: React.FC<MetricSquareProps> = (props) => {
           )}
           {!props.compactHeader && (
             <>
-              <h5 className="metric-title">{props.title}</h5>
+              <span className="metric-title-row">
+                <h5 className="metric-title">{props.title}</h5>
+              </span>
               {props.unit && (
                 <span className="metric-details">({props.unit})</span>
               )}
@@ -115,5 +119,23 @@ const MetricSquare: React.FC<MetricSquareProps> = (props) => {
     </>
   );
 };
+
+const MetricInfo: React.FC<{ title: string; description: string }> = ({
+  title,
+  description,
+}) => (
+  <span className="metric-info-wrapper">
+    <button
+      className="metric-info"
+      type="button"
+      aria-label={`About ${title}`}
+    >
+      i
+    </button>
+    <span className="metric-info-tooltip" role="tooltip">
+      {description}
+    </span>
+  </span>
+);
 
 export default MetricSquare;
