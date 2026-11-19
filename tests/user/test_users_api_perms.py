@@ -273,7 +273,7 @@ async def test_staff_update_users(
 async def test_staff_delete_users(
     db: AsyncSession, user_client: AsyncClient, current_user: User
 ):
-    """Only staff and admins should be able to create users"""
+    """Only staff and admins should be able to delete users"""
 
     # u1 in same team, others not
     u1, u2, u3, u4 = await create_test_users(db, count=4)

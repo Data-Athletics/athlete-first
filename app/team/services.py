@@ -11,7 +11,7 @@ from app.core.database import DBErrors
 from app.core.dependencies import AsyncSessionDep
 from app.team.dtos.member_dsp_dto import MembershipDspDTO
 from app.team.dtos.team_dsr_dto import TeamDsrDTO
-from app.team.dtos.team_dto import CreateTeamDTO, MyTeamDTO, UpdateTeamDTO
+from app.team.dtos.team_dto import CreateTeamDTO, UpdateTeamDTO
 from app.team.dtos.team_membership_dto import (
     CreateTeamMembershipDTO,
     CreateTeamMembershipRequestDTO,
@@ -27,41 +27,54 @@ from app.user.models import User
 # -------------------------------
 
 
-async def list_teams(db: AsyncSession) -> list[Team]:
-    """Get a list of all teams"""
-
-    rows = await db.execute(select(Team).order_by(desc(Team.id)))
-    return list(rows.scalars())
-
-
-async def get_my_teams(db: AsyncSession, user: User) -> list[MyTeamDTO]:
+async def list_teams(db: AsyncSession, principal: User) -> list[Team]:
     """Get all teams and memberships for the current user."""
 
-    rows = await db.execute(
-        select(Team, TeamMembership)
-        .join(TeamMembership, TeamMembership.team_id == Team.id)
-        .where(TeamMembership.user_id == user.id)
+    # Initial query should list all teams and attach any memberships that match the principal
+    query = (
+        select(Team)
+        .join(
+            TeamMembership,
+            and_(
+                TeamMembership.team_id == Team.id,
+                TeamMembership.user_id == principal.id,
+            ),
+            isouter=True,
+        )
         .order_by(desc(Team.id))
     )
 
-    return [
-        MyTeamDTO.model_validate(
-            {
-                "id": team.id,
-                "created_at": team.created_at,
-                "updated_at": team.updated_at,
-                "name": team.name,
-                "membership": membership,
-            }
-        )
-        for team, membership in rows.all()
-    ]
+    # But if user is not staff, filter out all teams without a membership
+    if not principal.is_effective_staff:
+        query = query.where(TeamMembership.id.is_not(None))
+
+    rows = await db.execute(query)
+
+    return list(rows.scalars())
 
 
-async def get_team_by_id(db: AsyncSessionDep, team_id: Annotated[int, Path()]) -> Team:
+async def get_team_by_id(
+    db: AsyncSessionDep, team_id: Annotated[int, Path()], principal: CurrentUserDep
+) -> Team:
     """Retrieve team by their id or raise 404"""
 
-    rows = await db.execute(select(Team).where(Team.id == team_id))
+    query = (
+        select(Team)
+        .join(
+            TeamMembership,
+            and_(
+                TeamMembership.team_id == Team.id,
+                TeamMembership.user_id == principal.id,
+            ),
+            isouter=True,
+        )
+        .where(Team.id == team_id)
+    )
+
+    if not principal.is_effective_staff:
+        query = query.where(TeamMembership.user_id == principal.id)
+
+    rows = await db.execute(query)
     team = rows.scalar_one_or_none()
 
     if team is None:

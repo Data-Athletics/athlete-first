@@ -28,7 +28,6 @@ from app.team.services import (
     delete_team_membership,
     get_effective_membership_dsp,
     get_effective_team_dsr,
-    get_my_teams,
     get_team_by_id,
     list_non_approved_team_memberships,
     list_team_memberships,
@@ -47,11 +46,12 @@ router = APIRouter(dependencies=[Depends(get_current_user)])
 teams_router = APIRouter(prefix="/teams")
 
 
-@teams_router.get("", response_model=list[TeamDTO])
-async def list_teams_route(db: AsyncSessionDep):
+@teams_router.get("", response_model=list[MyTeamDTO])
+async def list_teams_route(db: AsyncSessionDep, user: CurrentUserDep):
     """Get a list of teams"""
 
-    return await list_teams(db)
+    teams = await list_teams(db, user)
+    return [MyTeamDTO.from_team(team, user) for team in teams]
 
 
 @teams_router.post(
@@ -66,21 +66,18 @@ async def create_team_route(db: AsyncSessionDep, body: CreateTeamDTO):
     return await create_team(db, body)
 
 
-@teams_router.get("/me", response_model=list[MyTeamDTO])
-async def get_my_teams_route(db: AsyncSessionDep, user: CurrentUserDep):
-    """Get the current user's teams and memberships"""
-
-    return await get_my_teams(db, user)
-
-
-@teams_router.get("/{team_id}", response_model=TeamDTO)
-async def retrieve_team_route(team: TeamByIdDep):
+@teams_router.get("/{team_id}", response_model=MyTeamDTO)
+async def retrieve_team_route(team: TeamByIdDep, user: CurrentUserDep):
     """Retrieve a single team"""
 
-    return team
+    return MyTeamDTO.from_team(team, user)
 
 
-@teams_router.patch("/{team_id}", response_model=TeamDTO)
+@teams_router.patch(
+    "/{team_id}",
+    response_model=TeamDTO,
+    dependencies=[Depends(current_user_is_staff_dep)],
+)
 async def update_team_route(
     db: AsyncSessionDep, team: TeamByIdDep, body: UpdateTeamDTO
 ):
@@ -89,7 +86,11 @@ async def update_team_route(
     return await update_team(db, team, body)
 
 
-@teams_router.delete("/{team_id}", response_model=TeamDTO)
+@teams_router.delete(
+    "/{team_id}",
+    response_model=TeamDTO,
+    dependencies=[Depends(current_user_is_staff_dep)],
+)
 async def delete_team_route(db: AsyncSessionDep, team: TeamByIdDep):
     """Delete an existing team and return the deleted team"""
 
