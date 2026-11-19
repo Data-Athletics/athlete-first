@@ -19,7 +19,7 @@
   flex-direction: column;
   justify-content: flex-start;
   min-height: 0;
-  padding: 5px 34px 3px 9px;
+  padding: 5px 9px 3px;
   box-sizing: border-box;
 }
 
@@ -28,18 +28,17 @@
 }
 
 .metric-title-row {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  width: 100%;
   gap: 7px;
 }
 
 .metric-info-wrapper {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 1;
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .metric-info {
@@ -69,7 +68,8 @@
 .metric-info-tooltip {
   position: absolute;
   z-index: 2;
-  top: calc(100% + 8px);
+  right: -12px;
+  bottom: calc(100% + 8px);
   left: 50%;
   width: 230px;
   padding: 10px 12px;
@@ -83,7 +83,7 @@
   line-height: 1.4;
   opacity: 0;
   pointer-events: none;
-  transform: translate(-50%, -4px);
+  transform: translate(-50%, 4px);
   transition: opacity 120ms ease, transform 120ms ease;
 }
 
@@ -94,6 +94,8 @@
 }
 
 .metric-player {
+  min-width: 0;
+  flex: 1 1 auto;
   color: #74b9ff;
   font-size: 11px;
   font-weight: 600;
@@ -115,6 +117,8 @@
 }
 
 .metric-title {
+  min-width: 0;
+  flex: 1 1 auto;
   margin: 0;
   font-weight: 400;
   font-size: 14px;

@@ -384,13 +384,18 @@ async def seed_data_sharing():
         users = await db.execute(
             select(User).where(
                 User.username.in_(
-                    ["player@email.com", "player2@email.com", "player3@email.com"]
+                    [
+                        "player@email.com",
+                        "player2@email.com",
+                        "player3@email.com",
+                        "player4@email.com",
+                    ]
                 )
             )
         )
         users_by_username = {user.username: user for user in users.scalars()}
 
-        if len(teams_by_name) != 2 or len(users_by_username) != 3:
+        if len(teams_by_name) != 2 or len(users_by_username) != 4:
             raise typer.BadParameter(
                 "Run the standard make seed users and teams before seeding sharing data."
             )
@@ -424,14 +429,36 @@ async def seed_data_sharing():
         alpha_player = memberships_by_user_and_team[
             (users_by_username["player@email.com"].id, team_alpha.id)
         ]
+        third_player = memberships_by_user_and_team[
+            (users_by_username["player3@email.com"].id, team_alpha.id)
+        ]
         beta_player = memberships_by_user_and_team[
             (users_by_username["player2@email.com"].id, team_beta.id)
+        ]
+        shared_player_alpha = memberships_by_user_and_team[
+            (users_by_username["player4@email.com"].id, team_alpha.id)
+        ]
+        shared_player_beta = memberships_by_user_and_team[
+            (users_by_username["player4@email.com"].id, team_beta.id)
         ]
 
         alpha_player.dsp = MembershipDsp(
             content={"bpm_shared": False, "hrv_shared": True, "effort_shared": True}
         )
+        third_player.dsp = MembershipDsp(
+            content={"bpm_shared": True, "hrv_shared": True, "effort_shared": True}
+        )
         beta_player.dsp = MembershipDsp(
+            content={
+                "calories_shared": True,
+                "respiratory_rate_shared": True,
+                "skin_temp_delta_shared": True,
+            }
+        )
+        shared_player_alpha.dsp = MembershipDsp(
+            content={"bpm_shared": True, "hrv_shared": True, "effort_shared": True}
+        )
+        shared_player_beta.dsp = MembershipDsp(
             content={
                 "calories_shared": True,
                 "respiratory_rate_shared": True,
@@ -442,8 +469,8 @@ async def seed_data_sharing():
         await db.commit()
 
     print(
-        "Seeded Team Alpha invalid BPM consent, Team Beta valid metric consent, "
-        "and a pending Team Alpha request."
+        "Seeded Team Alpha invalid BPM consent and valid consent for the other "
+        "demo athletes."
     )
 
 

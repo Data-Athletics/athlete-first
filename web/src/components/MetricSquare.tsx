@@ -37,24 +37,21 @@ const MetricSquare: React.FC<MetricSquareProps> = (props) => {
   return (
     <>
       <div className="metric-container">
-        <MetricInfo title={props.title} description={props.description} />
         <div
           className={`metric-heading${
             props.compactHeader ? " is-compact" : ""
           }`}
         >
-          {props.playerName && (
-            <span className="metric-player">{props.playerName}</span>
-          )}
-          {!props.compactHeader && (
-            <>
-              <span className="metric-title-row">
+          <span className="metric-title-row">
+            {props.playerName ? (
+              <span className="metric-player">{props.playerName}</span>
+            ) : (
                 <h5 className="metric-title">{props.title}</h5>
-              </span>
-              {props.unit && (
-                <span className="metric-details">({props.unit})</span>
-              )}
-            </>
+            )}
+            <MetricInfo title={props.title} description={props.description} />
+          </span>
+          {!props.compactHeader && props.unit && (
+            <span className="metric-details">({props.unit})</span>
           )}
         </div>
         <div className="value-container">

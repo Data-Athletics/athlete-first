@@ -11,6 +11,7 @@ services:
       - ./app:/app/app
       - ./scripts:/scripts
       - ./utilities:/app/utilities
+      - ./seed_data:/app/seed_data
       - ./tests:/app/tests
       - ./pyproject.toml:/app/pyproject.toml
     env_file:
