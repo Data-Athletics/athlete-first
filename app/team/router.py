@@ -2,7 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.auth.dependencies import CurrentUserDep, get_current_user
 from app.core.dependencies import AsyncSessionDep
+from app.core.dtos import PermissionDeniedReason
+from app.core.exceptions import PermissionException
 from app.team.dependencies import (
+    CurrentUserTeamAccessDep,
     CurrentUserTeamMembership,
     TeamByIdDep,
     TeamMembershipByIdDep,
@@ -14,12 +17,13 @@ from app.team.dtos.team_dto import CreateTeamDTO, MyTeamDTO, TeamDTO, UpdateTeam
 from app.team.dtos.team_membership_dto import (
     CreateTeamMembershipDTO,
     CreateTeamMembershipRequestDTO,
+    TeamAccessLevel,
     TeamMemberDTO,
     TeamMembershipDTO,
     TeamMembershipRequestDTO,
     UpdateTeamMembershipDTO,
 )
-from app.team.models import MembershipDsp, TeamDsr
+from app.team.models import MembershipDsp, TeamDsr, TeamRoleType
 from app.team.services import (
     create_team,
     create_team_membership,
@@ -109,13 +113,18 @@ memberships_router = APIRouter(
 )
 
 
-@memberships_router.get("", response_model=list[TeamMemberDTO])
+@memberships_router.get(
+    "",
+    response_model=list[TeamMemberDTO],
+    dependencies=[Depends(current_user_is_team_coach_dep)],
+)
 async def list_team_memberships_route(db: AsyncSessionDep, team: TeamByIdDep):
     """List team members for a specific team"""
 
     return await list_team_memberships(db, team)
 
 
+# TODO: Merge this with list route
 @memberships_router.get("/non-approved", response_model=list[TeamMembershipRequestDTO])
 async def list_non_approved_team_memberships_route(
     db: AsyncSessionDep, team: TeamByIdDep
@@ -126,12 +135,25 @@ async def list_non_approved_team_memberships_route(
 
 
 @memberships_router.post(
-    "", response_model=TeamMembershipDTO, status_code=status.HTTP_201_CREATED
+    "",
+    response_model=TeamMembershipDTO,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(current_user_is_team_coach_dep)],
 )
 async def create_team_membership_route(
-    db: AsyncSessionDep, team: TeamByIdDep, body: CreateTeamMembershipDTO
+    db: AsyncSessionDep,
+    user: CurrentUserDep,
+    access_level: CurrentUserTeamAccessDep,
+    team: TeamByIdDep,
+    body: CreateTeamMembershipDTO,
 ):
     """Create a new membership for a team"""
+
+    if body.role == TeamRoleType.COACH and access_level != TeamAccessLevel.STAFF:
+        raise PermissionException(
+            detail="Must be staff to add coaches to a team",
+            reason=PermissionDeniedReason.STAFF_ONLY,
+        )
 
     return await create_team_membership(db, team, body)
 
@@ -154,7 +176,11 @@ async def retrieve_team_membership_route(membership: TeamMembershipByIdDep):
     return membership
 
 
-@memberships_router.patch("/{team_membership_id}", response_model=TeamMembershipDTO)
+@memberships_router.patch(
+    "/{team_membership_id}",
+    response_model=TeamMembershipDTO,
+    dependencies=[Depends(current_user_is_staff_dep)],
+)
 async def update_team_membership_route(
     db: AsyncSessionDep,
     membership: TeamMembershipByIdDep,
@@ -167,9 +193,17 @@ async def update_team_membership_route(
 
 @memberships_router.delete("/{team_membership_id}", response_model=TeamMembershipDTO)
 async def delete_team_membership_route(
-    db: AsyncSessionDep, membership: TeamMembershipByIdDep
+    db: AsyncSessionDep,
+    membership: TeamMembershipByIdDep,
+    access_level: CurrentUserTeamAccessDep,
 ):
     """Remove a user from a team"""
+
+    if membership.role == TeamRoleType.COACH and access_level == TeamAccessLevel.COACH:
+        raise PermissionException(
+            detail="Only staff level users can delete coaches",
+            reason=PermissionDeniedReason.STAFF_ONLY,
+        )
 
     return await delete_team_membership(db, membership)
 

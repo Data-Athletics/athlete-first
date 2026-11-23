@@ -23,6 +23,7 @@ class PermissionDeniedReason(StrEnum):
     NULL_POLICY = "null_policy"
     INVALID_POLICY = "invalid_policy"
     STAFF_ONLY = "staff_only"
+    COACHES_ONLY = "coaches_only"
     UNKNOWN = "unknown"
 
 

@@ -9,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import CurrentUserDep
 from app.core.database import DBErrors
 from app.core.dependencies import AsyncSessionDep
+from app.core.dtos import PermissionDeniedReason
+from app.core.exceptions import PermissionException
 from app.team.dtos.member_dsp_dto import MembershipDspDTO
 from app.team.dtos.team_dsr_dto import TeamDsrDTO
 from app.team.dtos.team_dto import CreateTeamDTO, UpdateTeamDTO
@@ -240,18 +242,30 @@ async def get_team_membership_by_id(
     db: AsyncSessionDep,
     team: Annotated[Team, Depends(get_team_by_id)],
     team_membership_id: Annotated[int, Path()],
+    principal: CurrentUserDep,
 ) -> TeamMembership:
     """Retrieve a team membership from a team or raise 404"""
 
-    rows = await db.execute(
-        select(TeamMembership).where(
-            and_(
-                TeamMembership.id == team_membership_id,
-                TeamMembership.team_id == team.id,
-            )
+    if not principal.is_effective_staff:
+        current_membership = next(
+            mem for mem in team.memberships if mem.user_id == principal.id
         )
+
+        if (
+            team_membership_id != current_membership.id
+            and current_membership.role != TeamRoleType.COACH
+        ):
+            # Non-staff athlete is trying to access another membership
+            raise PermissionException(
+                detail="Only coaches can see other members of a team",
+                reason=PermissionDeniedReason.COACHES_ONLY,
+            )
+
+    # Memberships already retrieved by database
+    await db.refresh(team)
+    membership = next(
+        (mem for mem in team.memberships if mem.id == team_membership_id), None
     )
-    membership = rows.scalar_one_or_none()
 
     if membership is None:
         raise HTTPException(

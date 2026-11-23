@@ -1,7 +1,22 @@
+from enum import StrEnum
+
 from pydantic import Field
 
 from app.core.dtos import BaseDTO, BaseModelDTO
 from app.team.models import TeamMembershipStatusType, TeamRoleType
+
+
+class TeamAccessLevel(StrEnum):
+    """The kind of permissions a user has within a team"""
+
+    STAFF = "staff"
+    """The user is marked as either staff or admin"""
+    COACH = "coach"
+    """The user has a membership with the role coach for the team"""
+    ATHLETE = "athlete"
+    """The user has a membership with the role athlete for the team"""
+    NONE = "none"
+    """The user is not a member of the team"""
 
 
 class BaseTeamMembershipDTO(BaseDTO):
