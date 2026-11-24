@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.faker import fake
@@ -10,6 +12,38 @@ from app.team.models import (
     TeamRoleType,
 )
 from app.user.models import User
+
+
+@dataclass
+class TeamMembershipsData:
+    """Provides a few teams with varying levels of access for the current user"""
+
+    t1: Team
+    """Current user is coach"""
+
+    t2: Team
+    """Current user is athlete"""
+
+    t3: Team
+    """Current user is not a member"""
+
+    t1_c1: TeamMembership
+    """Current user"""
+    t1_c2: TeamMembership
+    t1_a1: TeamMembership
+
+    t2_c1: TeamMembership
+    t2_a1: TeamMembership
+    """Current user"""
+    t2_a2: TeamMembership
+
+    t3_c1: TeamMembership
+    t3_c2: TeamMembership
+    t3_c3: TeamMembership
+    t3_a1: TeamMembership
+
+    def get_teams(self):
+        return (self.t1, self.t2, self.t3)
 
 
 async def create_test_team(

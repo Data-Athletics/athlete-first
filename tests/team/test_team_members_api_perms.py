@@ -1,84 +1,11 @@
-from dataclasses import dataclass
-
-import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.team.models import Team, TeamMembership, TeamRoleType
+from app.team.models import TeamMembership, TeamRoleType
 from app.user.models import User
-from tests.team.utils import create_test_team
+from tests.team.utils import TeamMembershipsData, create_test_team
 from tests.user.utils import create_test_users
 from tests.utils import model_count
-
-
-@dataclass
-class TeamMembershipsData:
-    """Provides a few teams with varying levels of access for the current user"""
-
-    t1: Team
-    """Current user is coach"""
-
-    t2: Team
-    """Current user is athlete"""
-
-    t3: Team
-    """Current user is not a member"""
-
-    t1_c1: TeamMembership
-    """Current user"""
-    t1_c2: TeamMembership
-    t1_a1: TeamMembership
-
-    t2_c1: TeamMembership
-    t2_a1: TeamMembership
-    """Current user"""
-    t2_a2: TeamMembership
-
-    t3_c1: TeamMembership
-    t3_c2: TeamMembership
-    t3_c3: TeamMembership
-    t3_a1: TeamMembership
-
-    def get_teams(self):
-        return (self.t1, self.t2, self.t3)
-
-
-@pytest.fixture(scope="function", name="team_memberships_data")
-async def setup_team_memberships_data(db: AsyncSession, current_user: User):
-    """Create team membership data for the current user"""
-
-    t1_c2, t1_a1, t2_c1, t2_a2, t3_c1, t3_c2, t3_c3, t3_a1 = await create_test_users(
-        db, count=8
-    )
-
-    t1 = await create_test_team(
-        db, coach_user_ids=[current_user.id, t1_c2.id], user_ids=[t1_a1.id]
-    )
-    t2 = await create_test_team(
-        db, coach_user_ids=[t2_c1.id], user_ids=[current_user.id, t2_a2.id]
-    )
-    t3 = await create_test_team(
-        db, coach_user_ids=[t3_c1.id, t3_c2.id, t3_c3.id], user_ids=[t3_a1.id]
-    )
-
-    def _get_membership(t: Team, u: User):
-        return next(m for m in t.memberships if m.user_id == u.id)
-
-    return TeamMembershipsData(
-        t1=t1,
-        t2=t2,
-        t3=t3,
-        t1_c1=_get_membership(t1, current_user),
-        t1_c2=_get_membership(t1, t1_c2),
-        t1_a1=_get_membership(t1, t1_a1),
-        t2_c1=_get_membership(t2, t2_c1),
-        t2_a1=_get_membership(t2, current_user),
-        t2_a2=_get_membership(t2, t2_a2),
-        t3_c1=_get_membership(t3, t3_c1),
-        t3_c2=_get_membership(t3, t3_c2),
-        t3_c3=_get_membership(t3, t3_c3),
-        t3_a1=_get_membership(t3, t3_a1),
-    )
 
 
 async def test_create_team_members_perms(
