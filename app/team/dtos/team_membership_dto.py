@@ -1,6 +1,7 @@
 from enum import StrEnum
+from typing import Self
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from app.core.dtos import BaseDTO, BaseModelDTO
 from app.team.models import TeamMembership, TeamMembershipStatusType, TeamRoleType
@@ -58,13 +59,14 @@ class TeamMemberDTO(TeamMembershipDTO):
 class CreateTeamMembershipDTO(BaseTeamMembershipDTO):
     """Fields needed to create a team membership"""
 
-    user_id: int
+    user_id: int | None = Field(default=None)
+    username: str | None = Field(default=None)
 
-
-class CreateTeamMembershipRequestDTO(BaseTeamMembershipDTO):
-    """Fields needed to request a team membership"""
-
-    username: str
+    @model_validator(mode="after")
+    def check_user_fields(self) -> Self:
+        if self.user_id is None and self.username is None:
+            raise ValueError("Must set `user_id` or `username`")
+        return self
 
 
 class UpdateTeamMembershipDTO(BaseTeamMembershipDTO):

@@ -18,7 +18,6 @@ from app.team.dtos.team_dsr_dto import SetTeamDsrDTO, TeamDsrDTO
 from app.team.dtos.team_dto import CreateTeamDTO, MyTeamDTO, TeamDTO, UpdateTeamDTO
 from app.team.dtos.team_membership_dto import (
     CreateTeamMembershipDTO,
-    CreateTeamMembershipRequestDTO,
     TeamAccessLevel,
     TeamMemberDTO,
     TeamMembershipDTO,
@@ -28,7 +27,6 @@ from app.team.models import MembershipDsp, TeamDsr, TeamRoleType
 from app.team.services import (
     create_team,
     create_team_membership,
-    create_team_membership_request,
     delete_team,
     delete_team_membership,
     get_effective_membership_dsp,
@@ -152,15 +150,15 @@ async def create_team_membership_route(
     return await create_team_membership(db, team, body)
 
 
-@memberships_router.post(
-    "/request", response_model=TeamMembershipDTO, status_code=status.HTTP_201_CREATED
-)
-async def create_team_membership_request_route(
-    db: AsyncSessionDep, team: TeamByIdDep, body: CreateTeamMembershipRequestDTO
-):
-    """Create a pending team membership request"""
+# @memberships_router.post(
+#     "/request", response_model=TeamMembershipDTO, status_code=status.HTTP_201_CREATED
+# )
+# async def create_team_membership_request_route(
+#     db: AsyncSessionDep, team: TeamByIdDep, body: CreateTeamMembershipRequestDTO
+# ):
+#     """Create a pending team membership request"""
 
-    return await create_team_membership_request(db, team, body)
+#     return await create_team_membership_request(db, team, body)
 
 
 @memberships_router.get("/{team_membership_id}", response_model=TeamMembershipDTO)

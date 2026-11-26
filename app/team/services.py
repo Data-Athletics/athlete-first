@@ -16,7 +16,6 @@ from app.team.dtos.team_dsr_dto import TeamDsrDTO
 from app.team.dtos.team_dto import CreateTeamDTO, UpdateTeamDTO
 from app.team.dtos.team_membership_dto import (
     CreateTeamMembershipDTO,
-    CreateTeamMembershipRequestDTO,
     TeamMemberDTO,
     UpdateTeamMembershipDTO,
 )
@@ -261,13 +260,30 @@ async def create_team_membership(
     db: AsyncSession,
     team: Team,
     body: CreateTeamMembershipDTO,
-    membership_status: TeamMembershipStatusType = TeamMembershipStatusType.APPROVE,
 ):
     """Create a team membership"""
 
-    membership = TeamMembership(
-        **body.model_dump(), team_id=team.id, status=membership_status
-    )
+    payload = body.model_dump()
+    username = payload.pop("username", None)
+
+    if username is not None:
+        rows = await db.execute(select(User).where(User.username == username))
+        user = rows.scalar_one_or_none()
+
+        if user is None:
+            raise RequestValidationError(
+                errors=[
+                    {
+                        "loc": ["body", "username"],
+                        "msg": f"No user exists with username {body.user_id}",
+                        "type": "value_error",
+                    }
+                ]
+            )
+
+        payload["user_id"] = user.id
+
+    membership = TeamMembership(**payload, team_id=team.id)
     db.add(membership)
 
     try:
@@ -299,26 +315,26 @@ async def create_team_membership(
     return membership
 
 
-async def create_team_membership_request(
-    db: AsyncSession, team: Team, body: CreateTeamMembershipRequestDTO
-):
-    """Create a pending team membership request"""
+# async def create_team_membership_request(
+#     db: AsyncSession, team: Team, body: CreateTeamMembershipRequestDTO
+# ):
+#     """Create a pending team membership request"""
 
-    rows = await db.execute(select(User).where(User.username == body.username))
-    user = rows.scalar_one_or_none()
+#     rows = await db.execute(select(User).where(User.username == body.username))
+#     user = rows.scalar_one_or_none()
 
-    if user is None:
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND,
-            detail=f"User not found for username {body.username}",
-        )
+#     if user is None:
+#         raise HTTPException(
+#             status.HTTP_404_NOT_FOUND,
+#             detail=f"User not found for username {body.username}",
+#         )
 
-    return await create_team_membership(
-        db,
-        team,
-        body=CreateTeamMembershipDTO(user_id=user.id),
-        membership_status=TeamMembershipStatusType.PENDING,
-    )
+#     return await create_team_membership(
+#         db,
+#         team,
+#         body=CreateTeamMembershipDTO(user_id=user.id),
+#         membership_status=TeamMembershipStatusType.PENDING,
+#     )
 
 
 async def update_team_membership(
