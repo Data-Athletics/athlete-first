@@ -14,12 +14,24 @@ ref: https://en.wikipedia.org/wiki/Argon2
 """
 
 
-def get_password_hash(plain_password: str) -> str:
+def _resolve_password(password: str | SecretStr) -> str:
+    """Get the string form of a password"""
+
+    if isinstance(password, SecretStr):
+        raw_password = password.get_secret_value()
+    else:
+        raw_password = password
+
+    return raw_password
+
+
+def get_password_hash(plain_password: str | SecretStr) -> str:
     """
     Get a hash value (with random salt) for a plain password that can be stored
     """
 
-    return password_hasher.hash(plain_password)
+    raw_password = _resolve_password(plain_password)
+    return password_hasher.hash(raw_password)
 
 
 def verify_password_hash(plain_password: str, password_hash: str) -> bool:
@@ -42,10 +54,7 @@ async def authenticate_user(
         return None
 
     # Extract the raw password
-    if isinstance(password, SecretStr):
-        raw_password = password.get_secret_value()
-    else:
-        raw_password = password
+    raw_password = _resolve_password(password)
 
     # Return None if the passwords don't match
     if not verify_password_hash(raw_password, user.hashed_password):

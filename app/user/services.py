@@ -9,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import CurrentUserDep
 from app.auth.services import get_password_hash
 from app.core.dependencies import AsyncSessionDep
+from app.core.dtos import PermissionDeniedReason
+from app.core.exceptions import PermissionException
 from app.team.models import Team, TeamMembership, TeamMembershipStatusType, TeamRoleType
 from app.user.models import User
 
@@ -112,3 +114,27 @@ async def list_users(db: AsyncSession, current_user: User):
 
     res = await db.execute(query)
     return res.scalars().all()
+
+
+def require_staff_user(
+    user: User, message="User needs to be staff or admin to access this"
+):
+    """Raise 403 forbidden error if the user is not staff"""
+
+    if not user.is_staff and not user.is_admin:
+        raise PermissionException(
+            detail=message, reason=PermissionDeniedReason.STAFF_ONLY
+        )
+
+    return True
+
+
+def require_admin_user(user: User, message="User needs to be an admin to access this"):
+    """Raise 403 forbidden error if the user is not staff"""
+
+    if not user.is_admin:
+        raise PermissionException(
+            detail=message, reason=PermissionDeniedReason.ADMIN_ONLY
+        )
+
+    return True

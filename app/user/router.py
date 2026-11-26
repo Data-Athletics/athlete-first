@@ -8,7 +8,7 @@ from app.core.dependencies import AsyncSessionDep
 from app.team.dependencies import current_user_is_any_coach_dep
 from app.user.dependencies import UserByIdDep, current_user_is_staff_dep
 from app.user.dtos.user_dto import CreateUserDTO, UpdateMeDTO, UpdateUserDTO, UserDTO
-from app.user.services import create_user, list_users
+from app.user.services import create_user, list_users, require_admin_user
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
@@ -37,8 +37,15 @@ async def list_users_route(db: AsyncSessionDep, current_user: CurrentUserDep):
 @users_staff_router.post(
     "", response_model=UserDTO, status_code=status.HTTP_201_CREATED
 )
-async def create_user_route(db: AsyncSessionDep, body: CreateUserDTO):
+async def create_user_route(
+    db: AsyncSessionDep, current_user: CurrentUserDep, body: CreateUserDTO
+):
     """Create a new user"""
+
+    if body.is_admin is not None:
+        require_admin_user(
+            current_user, message="User needs to be an admin to create other admin"
+        )
 
     data = body.model_dump()
     return await create_user(db, **data)
@@ -57,11 +64,36 @@ async def retrieve_user_route(user: UserByIdDep):
 
 @users_staff_router.patch("/{user_id}", response_model=UserDTO)
 async def update_user_route(
-    db: AsyncSessionDep, user: UserByIdDep, body: UpdateUserDTO
+    db: AsyncSessionDep,
+    current_user: CurrentUserDep,
+    user: UserByIdDep,
+    body: UpdateUserDTO,
 ):
     """Partially update a user"""
 
+    # Check for privelege-escalation
+    if body.is_admin is not None:
+        require_admin_user(
+            current_user, message="User needs to be an admin to promote users to admin"
+        )
+
+    if body.is_active is not None and user.is_admin:
+        require_admin_user(
+            current_user, message="Only admins can set other admins as active/inactive"
+        )
+
+    # Then continue with update
     data = body.model_dump(exclude_unset=True)
+    changed_pass = data.pop("password", None)
+
+    if changed_pass is not None:
+        if user.is_admin:
+            require_admin_user(
+                current_user,
+                message="Only admins can change the password of other admins",
+            )
+
+        user.hashed_password = get_password_hash(changed_pass)
 
     for key, value in data.items():
         setattr(user, key, value)
@@ -81,8 +113,13 @@ async def update_user_route(
 
 
 @users_staff_router.delete("/{user_id}", response_model=UserDTO)
-async def delete_user_route(db: AsyncSessionDep, user: UserByIdDep):
+async def delete_user_route(
+    db: AsyncSessionDep, current_user: CurrentUserDep, user: UserByIdDep
+):
     """Delete user by id"""
+
+    if user.is_admin:
+        require_admin_user(current_user, message="Only admins can delete other admins")
 
     await db.delete(user)
     await db.flush()

@@ -92,7 +92,7 @@ async def require_team_coach(
 ) -> None:
     """Require an approved coach membership before changing team requirements."""
 
-    if user.is_admin or user.is_staff:
+    if user.is_effective_staff:
         return
 
     query = select(TeamMembership).where(
@@ -106,9 +106,9 @@ async def require_team_coach(
 
     rows = await db.execute(query)
     if rows.scalar_one_or_none() is None:
-        raise HTTPException(
-            status.HTTP_403_FORBIDDEN,
-            detail="Only an approved team coach can update data sharing requirements.",
+        raise PermissionException(
+            detail="Must be an approved team coach or staff to perform action",
+            reason=PermissionDeniedReason.COACHES_ONLY,
         )
 
 

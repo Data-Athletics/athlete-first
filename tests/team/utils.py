@@ -121,3 +121,26 @@ async def create_test_teams(db: AsyncSession | None = None, count: int = 5, **kw
             await db.refresh(team)
 
     return teams
+
+
+async def create_test_team_membership(
+    db: AsyncSession,
+    user_id: int,
+    team_id: int,
+    is_coach: bool = False,
+    status=TeamMembershipStatusType.APPROVE,
+    **kwargs,
+):
+    """Create a membership between a user and a team"""
+
+    payload = {"user_id": user_id, "team_id": team_id, "status": status, **kwargs}
+
+    if is_coach:
+        payload["role"] = TeamRoleType.COACH
+
+    membership = TeamMembership(**payload)
+    db.add(membership)
+    await db.commit()
+    await db.refresh(membership)
+
+    return membership
