@@ -172,7 +172,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     teamId: number,
     username: string,
   ) => {
-    await api.post(`/team/teams/${teamId}/memberships/request`, {
+    await api.post(`/team/teams/${teamId}/memberships`, {
       username,
     });
     await getTeamMembershipRequests();
@@ -200,7 +200,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     const responses = await Promise.all(
       currentTeams.map(({ id }) =>
         api.get<TeamMembershipRequest[]>(
-          `/team/teams/${id}/memberships/non-approved`,
+          `/team/teams/${id}/memberships/?non_approved=True`,
         ),
       ),
     );

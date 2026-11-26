@@ -62,9 +62,7 @@ class TeamMembership(ModelBase):
 
     user_id: Mapped[int] = mapped_column(ForeignKey(User.id, ondelete="CASCADE"))
     user: Mapped[User] = relationship(
-        back_populates="memberships",
-        foreign_keys=[user_id],
-        lazy="joined",
+        back_populates="memberships", foreign_keys=[user_id], lazy="joined"
     )
 
     dsp: Mapped[Optional["MembershipDsp"]] = relationship(

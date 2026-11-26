@@ -257,9 +257,7 @@ async def get_user_team_membership(
 
 
 async def create_team_membership(
-    db: AsyncSession,
-    team: Team,
-    body: CreateTeamMembershipDTO,
+    db: AsyncSession, team: Team, body: CreateTeamMembershipDTO
 ):
     """Create a team membership"""
 

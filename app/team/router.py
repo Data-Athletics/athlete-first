@@ -134,7 +134,6 @@ async def list_team_memberships_route(
 )
 async def create_team_membership_route(
     db: AsyncSessionDep,
-    user: CurrentUserDep,
     access_level: CurrentUserTeamAccessDep,
     team: TeamByIdDep,
     body: CreateTeamMembershipDTO,
@@ -148,17 +147,6 @@ async def create_team_membership_route(
         )
 
     return await create_team_membership(db, team, body)
-
-
-# @memberships_router.post(
-#     "/request", response_model=TeamMembershipDTO, status_code=status.HTTP_201_CREATED
-# )
-# async def create_team_membership_request_route(
-#     db: AsyncSessionDep, team: TeamByIdDep, body: CreateTeamMembershipRequestDTO
-# ):
-#     """Create a pending team membership request"""
-
-#     return await create_team_membership_request(db, team, body)
 
 
 @memberships_router.get("/{team_membership_id}", response_model=TeamMembershipDTO)
