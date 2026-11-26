@@ -154,7 +154,7 @@ async def test_list_non_approved_team_memberships(
     )
     assert res.status_code == 200, res.content
 
-    res = await admin_client.get(f"/team/teams/{team.id}/memberships/non-approved")
+    res = await admin_client.get(f"/team/teams/{team.id}/memberships?non_approved=True")
     assert res.status_code == 200, res.content
 
     data = res.json()

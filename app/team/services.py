@@ -18,7 +18,6 @@ from app.team.dtos.team_membership_dto import (
     CreateTeamMembershipDTO,
     CreateTeamMembershipRequestDTO,
     TeamMemberDTO,
-    TeamMembershipRequestDTO,
     UpdateTeamMembershipDTO,
 )
 from app.team.models import Team, TeamMembership, TeamMembershipStatusType, TeamRoleType
@@ -179,63 +178,22 @@ async def delete_team(db: AsyncSession, team: Team):
 # -------------------------------
 
 
-async def list_team_memberships(db: AsyncSession, team: Team) -> list[TeamMemberDTO]:
+async def list_team_memberships(
+    db: AsyncSession, team: Team, non_approved: bool | None = None
+) -> list[TeamMemberDTO]:
     """List team memberships for a team"""
 
-    rows = await db.execute(
-        select(TeamMembership, User.name)
-        .join(User, User.id == TeamMembership.user_id)
+    query = (
+        select(TeamMembership)
         .where(TeamMembership.team_id == team.id)
         .order_by(desc(TeamMembership.id))
     )
-    return [
-        TeamMemberDTO.model_validate(
-            {
-                "id": membership.id,
-                "created_at": membership.created_at,
-                "updated_at": membership.updated_at,
-                "role": membership.role,
-                "user_id": membership.user_id,
-                "team_id": membership.team_id,
-                "status": membership.status,
-                "name": name,
-            }
-        )
-        for membership, name in rows.all()
-    ]
 
+    if non_approved is True:
+        query = query.where(TeamMembership.status != TeamMembershipStatusType.APPROVE)
 
-async def list_non_approved_team_memberships(
-    db: AsyncSession, team: Team
-) -> list[TeamMembershipRequestDTO]:
-    """List all non-approved memberships for a team."""
-
-    rows = await db.execute(
-        select(TeamMembership, User.name)
-        .join(User, User.id == TeamMembership.user_id)
-        .where(
-            TeamMembership.team_id == team.id,
-            TeamMembership.status != TeamMembershipStatusType.APPROVE,
-        )
-        .order_by(desc(TeamMembership.id))
-    )
-
-    return [
-        TeamMembershipRequestDTO.model_validate(
-            {
-                "id": membership.id,
-                "created_at": membership.created_at,
-                "updated_at": membership.updated_at,
-                "role": membership.role,
-                "user_id": membership.user_id,
-                "team_id": membership.team_id,
-                "status": membership.status,
-                "name": name,
-                "team_name": team.name,
-            }
-        )
-        for membership, name in rows.all()
-    ]
+    rows = await db.execute(query)
+    return [TeamMemberDTO.from_team_membership(mem) for mem in rows.scalars()]
 
 
 async def get_team_membership_by_id(

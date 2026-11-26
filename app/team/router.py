@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.auth.dependencies import CurrentUserDep, get_current_user
 from app.core.dependencies import AsyncSessionDep
@@ -20,7 +22,6 @@ from app.team.dtos.team_membership_dto import (
     TeamAccessLevel,
     TeamMemberDTO,
     TeamMembershipDTO,
-    TeamMembershipRequestDTO,
     UpdateTeamMembershipDTO,
 )
 from app.team.models import MembershipDsp, TeamDsr, TeamRoleType
@@ -33,7 +34,6 @@ from app.team.services import (
     get_effective_membership_dsp,
     get_effective_team_dsr,
     get_team_by_id,
-    list_non_approved_team_memberships,
     list_team_memberships,
     list_teams,
     update_team,
@@ -118,20 +118,14 @@ memberships_router = APIRouter(
     response_model=list[TeamMemberDTO],
     dependencies=[Depends(current_user_is_team_coach_dep)],
 )
-async def list_team_memberships_route(db: AsyncSessionDep, team: TeamByIdDep):
+async def list_team_memberships_route(
+    db: AsyncSessionDep,
+    team: TeamByIdDep,
+    non_approved: Annotated[bool | None, Query()] = None,
+):
     """List team members for a specific team"""
 
-    return await list_team_memberships(db, team)
-
-
-# TODO: Merge this with list route
-@memberships_router.get("/non-approved", response_model=list[TeamMembershipRequestDTO])
-async def list_non_approved_team_memberships_route(
-    db: AsyncSessionDep, team: TeamByIdDep
-):
-    """List non-approved memberships for a team"""
-
-    return await list_non_approved_team_memberships(db, team)
+    return await list_team_memberships(db, team, non_approved=non_approved)
 
 
 @memberships_router.post(

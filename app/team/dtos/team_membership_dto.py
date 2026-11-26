@@ -3,7 +3,7 @@ from enum import StrEnum
 from pydantic import Field
 
 from app.core.dtos import BaseDTO, BaseModelDTO
-from app.team.models import TeamMembershipStatusType, TeamRoleType
+from app.team.models import TeamMembership, TeamMembershipStatusType, TeamRoleType
 
 
 class TeamAccessLevel(StrEnum):
@@ -36,17 +36,23 @@ class TeamMembershipDTO(BaseTeamMembershipDTO, BaseModelDTO):
     status: TeamMembershipStatusType = Field(description="Status of membership consent")
 
 
-class TeamMembershipRequestDTO(TeamMembershipDTO):
-    """A membership request with the user and team display names"""
-
-    name: str
-    team_name: str
-
-
 class TeamMemberDTO(TeamMembershipDTO):
     """A team membership with the user's display name"""
 
     name: str
+    team_name: str
+
+    @classmethod
+    def from_team_membership(cls, team_membership: TeamMembership):
+        """Extract DTO from a team membership object"""
+
+        return cls.model_validate(
+            {
+                **TeamMembershipDTO.model_validate(team_membership).model_dump(),
+                "name": team_membership.user.name,
+                "team_name": team_membership.team.name,
+            }
+        )
 
 
 class CreateTeamMembershipDTO(BaseTeamMembershipDTO):
