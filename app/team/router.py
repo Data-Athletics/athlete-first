@@ -1,41 +1,43 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.auth.dependencies import CurrentUserDep, get_current_user
 from app.core.dependencies import AsyncSessionDep
+from app.core.dtos import PermissionDeniedReason
+from app.core.exceptions import PermissionException
 from app.team.dependencies import (
+    CurrentUserTeamAccessDep,
     CurrentUserTeamMembership,
     TeamByIdDep,
     TeamMembershipByIdDep,
+    current_user_is_team_coach_dep,
 )
 from app.team.dtos.member_dsp_dto import MembershipDspDTO, SetMembershipDspDTO
 from app.team.dtos.team_dsr_dto import SetTeamDsrDTO, TeamDsrDTO
 from app.team.dtos.team_dto import CreateTeamDTO, MyTeamDTO, TeamDTO, UpdateTeamDTO
 from app.team.dtos.team_membership_dto import (
     CreateTeamMembershipDTO,
-    CreateTeamMembershipRequestDTO,
+    TeamAccessLevel,
     TeamMemberDTO,
     TeamMembershipDTO,
-    TeamMembershipRequestDTO,
     UpdateTeamMembershipDTO,
 )
-from app.team.models import MembershipDsp, TeamDsr
+from app.team.models import MembershipDsp, TeamDsr, TeamRoleType
 from app.team.services import (
     create_team,
     create_team_membership,
-    create_team_membership_request,
     delete_team,
     delete_team_membership,
     get_effective_membership_dsp,
     get_effective_team_dsr,
-    get_my_teams,
     get_team_by_id,
-    list_non_approved_team_memberships,
     list_team_memberships,
     list_teams,
-    require_team_coach,
     update_team,
     update_team_membership,
 )
+from app.user.dependencies import current_user_is_staff_dep
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
@@ -46,35 +48,38 @@ router = APIRouter(dependencies=[Depends(get_current_user)])
 teams_router = APIRouter(prefix="/teams")
 
 
-@teams_router.get("", response_model=list[TeamDTO])
-async def list_teams_route(db: AsyncSessionDep):
+@teams_router.get("", response_model=list[MyTeamDTO])
+async def list_teams_route(db: AsyncSessionDep, user: CurrentUserDep):
     """Get a list of teams"""
 
-    return await list_teams(db)
+    teams = await list_teams(db, user)
+    return [MyTeamDTO.from_team(team, user) for team in teams]
 
 
-@teams_router.post("", response_model=TeamDTO, status_code=status.HTTP_201_CREATED)
+@teams_router.post(
+    "",
+    response_model=TeamDTO,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(current_user_is_staff_dep)],
+)
 async def create_team_route(db: AsyncSessionDep, body: CreateTeamDTO):
     """Create a new team"""
 
     return await create_team(db, body)
 
 
-@teams_router.get("/me", response_model=list[MyTeamDTO])
-async def get_my_teams_route(db: AsyncSessionDep, user: CurrentUserDep):
-    """Get the current user's teams and memberships"""
-
-    return await get_my_teams(db, user)
-
-
-@teams_router.get("/{team_id}", response_model=TeamDTO)
-async def retrieve_team_route(team: TeamByIdDep):
+@teams_router.get("/{team_id}", response_model=MyTeamDTO)
+async def retrieve_team_route(team: TeamByIdDep, user: CurrentUserDep):
     """Retrieve a single team"""
 
-    return team
+    return MyTeamDTO.from_team(team, user)
 
 
-@teams_router.patch("/{team_id}", response_model=TeamDTO)
+@teams_router.patch(
+    "/{team_id}",
+    response_model=TeamDTO,
+    dependencies=[Depends(current_user_is_staff_dep)],
+)
 async def update_team_route(
     db: AsyncSessionDep, team: TeamByIdDep, body: UpdateTeamDTO
 ):
@@ -83,7 +88,11 @@ async def update_team_route(
     return await update_team(db, team, body)
 
 
-@teams_router.delete("/{team_id}", response_model=TeamDTO)
+@teams_router.delete(
+    "/{team_id}",
+    response_model=TeamDTO,
+    dependencies=[Depends(current_user_is_staff_dep)],
+)
 async def delete_team_route(db: AsyncSessionDep, team: TeamByIdDep):
     """Delete an existing team and return the deleted team"""
 
@@ -102,42 +111,42 @@ memberships_router = APIRouter(
 )
 
 
-@memberships_router.get("", response_model=list[TeamMemberDTO])
-async def list_team_memberships_route(db: AsyncSessionDep, team: TeamByIdDep):
+@memberships_router.get(
+    "",
+    response_model=list[TeamMemberDTO],
+    dependencies=[Depends(current_user_is_team_coach_dep)],
+)
+async def list_team_memberships_route(
+    db: AsyncSessionDep,
+    team: TeamByIdDep,
+    non_approved: Annotated[bool | None, Query()] = None,
+):
     """List team members for a specific team"""
 
-    return await list_team_memberships(db, team)
-
-
-@memberships_router.get("/non-approved", response_model=list[TeamMembershipRequestDTO])
-async def list_non_approved_team_memberships_route(
-    db: AsyncSessionDep, team: TeamByIdDep
-):
-    """List non-approved memberships for a team"""
-
-    return await list_non_approved_team_memberships(db, team)
+    return await list_team_memberships(db, team, non_approved=non_approved)
 
 
 @memberships_router.post(
-    "", response_model=TeamMembershipDTO, status_code=status.HTTP_201_CREATED
+    "",
+    response_model=TeamMembershipDTO,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(current_user_is_team_coach_dep)],
 )
 async def create_team_membership_route(
-    db: AsyncSessionDep, team: TeamByIdDep, body: CreateTeamMembershipDTO
+    db: AsyncSessionDep,
+    access_level: CurrentUserTeamAccessDep,
+    team: TeamByIdDep,
+    body: CreateTeamMembershipDTO,
 ):
     """Create a new membership for a team"""
 
+    if body.role == TeamRoleType.COACH and access_level != TeamAccessLevel.STAFF:
+        raise PermissionException(
+            detail="Must be staff to add coaches to a team",
+            reason=PermissionDeniedReason.STAFF_ONLY,
+        )
+
     return await create_team_membership(db, team, body)
-
-
-@memberships_router.post(
-    "/request", response_model=TeamMembershipDTO, status_code=status.HTTP_201_CREATED
-)
-async def create_team_membership_request_route(
-    db: AsyncSessionDep, team: TeamByIdDep, body: CreateTeamMembershipRequestDTO
-):
-    """Create a pending team membership request"""
-
-    return await create_team_membership_request(db, team, body)
 
 
 @memberships_router.get("/{team_membership_id}", response_model=TeamMembershipDTO)
@@ -147,7 +156,11 @@ async def retrieve_team_membership_route(membership: TeamMembershipByIdDep):
     return membership
 
 
-@memberships_router.patch("/{team_membership_id}", response_model=TeamMembershipDTO)
+@memberships_router.patch(
+    "/{team_membership_id}",
+    response_model=TeamMembershipDTO,
+    dependencies=[Depends(current_user_is_team_coach_dep)],
+)
 async def update_team_membership_route(
     db: AsyncSessionDep,
     membership: TeamMembershipByIdDep,
@@ -160,7 +173,9 @@ async def update_team_membership_route(
 
 @memberships_router.delete("/{team_membership_id}", response_model=TeamMembershipDTO)
 async def delete_team_membership_route(
-    db: AsyncSessionDep, membership: TeamMembershipByIdDep
+    db: AsyncSessionDep,
+    membership: TeamMembershipByIdDep,
+    access_level: CurrentUserTeamAccessDep,
 ):
     """Remove a user from a team"""
 
@@ -187,13 +202,16 @@ async def retrieve_team_dsr_route(team: TeamByIdDep):
     return get_effective_team_dsr(team)
 
 
-@team_dsr_router.put("", response_model=TeamDsrDTO)
+@team_dsr_router.put(
+    "",
+    response_model=TeamDsrDTO,
+    dependencies=[Depends(current_user_is_team_coach_dep)],
+)
 async def set_team_dsr_route(
-    db: AsyncSessionDep, team: TeamByIdDep, user: CurrentUserDep, body: SetTeamDsrDTO
+    db: AsyncSessionDep, team: TeamByIdDep, body: SetTeamDsrDTO
 ):
     """Fully update/replace a team's data sharing requirements"""
 
-    await require_team_coach(db, team, user)
     payload = body.model_dump(exclude_unset=True)
 
     dsr: TeamDsr

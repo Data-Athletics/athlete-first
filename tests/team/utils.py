@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.faker import fake
@@ -7,13 +9,47 @@ from app.team.models import (
     TeamDsr,
     TeamMembership,
     TeamMembershipStatusType,
+    TeamRoleType,
 )
 from app.user.models import User
+
+
+@dataclass
+class TeamMembershipsData:
+    """Provides a few teams with varying levels of access for the current user"""
+
+    t1: Team
+    """Current user is coach"""
+
+    t2: Team
+    """Current user is athlete"""
+
+    t3: Team
+    """Current user is not a member"""
+
+    t1_c1: TeamMembership
+    """Current user"""
+    t1_c2: TeamMembership
+    t1_a1: TeamMembership
+
+    t2_c1: TeamMembership
+    t2_a1: TeamMembership
+    """Current user"""
+    t2_a2: TeamMembership
+
+    t3_c1: TeamMembership
+    t3_c2: TeamMembership
+    t3_c3: TeamMembership
+    t3_a1: TeamMembership
+
+    def get_teams(self):
+        return (self.t1, self.t2, self.t3)
 
 
 async def create_test_team(
     db: AsyncSession | None = None,
     user_ids: list[int] | None = None,
+    coach_user_ids: list[int] | None = None,
     users: list[User] | None = None,
     create_dsps: bool = False,
     create_dsr: bool = False,
@@ -40,11 +76,22 @@ async def create_test_team(
             TeamMembership(
                 user_id=user_id,
                 team_id=team.id,
-                status=TeamMembershipStatusType.APPROVE,
+                status=TeamMembershipStatusType.APPROVED,
             )
             for user_id in user_ids
         ]
-        db.add_all(mems)
+
+        coaches = [
+            TeamMembership(
+                user_id=user_id,
+                team_id=team.id,
+                role=TeamRoleType.COACH,
+                status=TeamMembershipStatusType.APPROVED,
+            )
+            for user_id in (coach_user_ids or [])
+        ]
+
+        db.add_all([*mems, *coaches])
         await db.flush()
 
         if create_dsps:
@@ -74,3 +121,26 @@ async def create_test_teams(db: AsyncSession | None = None, count: int = 5, **kw
             await db.refresh(team)
 
     return teams
+
+
+async def create_test_team_membership(
+    db: AsyncSession,
+    user_id: int,
+    team_id: int,
+    is_coach: bool = False,
+    status=TeamMembershipStatusType.APPROVED,
+    **kwargs,
+):
+    """Create a membership between a user and a team"""
+
+    payload = {"user_id": user_id, "team_id": team_id, "status": status, **kwargs}
+
+    if is_coach:
+        payload["role"] = TeamRoleType.COACH
+
+    membership = TeamMembership(**payload)
+    db.add(membership)
+    await db.commit()
+    await db.refresh(membership)
+
+    return membership

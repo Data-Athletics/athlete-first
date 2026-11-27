@@ -1,7 +1,7 @@
 import typing
 from typing import Literal, Optional
 
-from sqlalchemy import Computed, and_
+from sqlalchemy import Computed, and_, or_
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import ModelBase
@@ -35,7 +35,9 @@ class User(ModelBase):
     """Age in years"""
 
     # Relationships
-    memberships: Mapped[list["TeamMembership"]] = relationship(back_populates="user")
+    memberships: Mapped[list["TeamMembership"]] = relationship(
+        back_populates="user", passive_deletes=True, lazy="selectin"
+    )
 
     # Computed fields
     can_login: Mapped[bool] = mapped_column(
@@ -43,3 +45,8 @@ class User(ModelBase):
             and_(hashed_password.is_not(None), is_active.is_(True)), persisted=True
         )
     )
+
+    is_effective_staff: Mapped[bool] = mapped_column(
+        Computed(or_(is_admin.is_(True), is_staff.is_(True)), persisted=True)
+    )
+    """Returns true if the user is staff or an admin"""

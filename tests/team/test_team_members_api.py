@@ -86,7 +86,7 @@ async def test_create_team_membership(
     payload = {"user_id": user.id}
     res = await admin_client.post(f"/team/teams/{team.id}/memberships", json=payload)
     assert res.status_code == 201, res.content
-    assert res.json()["status"] == TeamMembershipStatusType.APPROVE
+    assert res.json()["status"] == TeamMembershipStatusType.PENDING
 
     await db.refresh(team)
     assert len(team.memberships) == initial_mem_count + 1
@@ -116,9 +116,7 @@ async def test_create_team_membership_request(
     user = await create_test_user(db)
 
     payload = {"username": user.username}
-    res = await admin_client.post(
-        f"/team/teams/{team.id}/memberships/request", json=payload
-    )
+    res = await admin_client.post(f"/team/teams/{team.id}/memberships", json=payload)
     assert res.status_code == 201, res.content
 
     data = res.json()
@@ -128,10 +126,10 @@ async def test_create_team_membership_request(
     membership_id = data["id"]
     res = await admin_client.patch(
         f"/team/teams/{team.id}/memberships/{membership_id}",
-        json={"status": TeamMembershipStatusType.APPROVE},
+        json={"status": TeamMembershipStatusType.APPROVED},
     )
     assert res.status_code == 200, res.content
-    assert res.json()["status"] == TeamMembershipStatusType.APPROVE
+    assert res.json()["status"] == TeamMembershipStatusType.APPROVED
 
 
 async def test_list_non_approved_team_memberships(
@@ -143,18 +141,18 @@ async def test_list_non_approved_team_memberships(
     user = await create_test_user(db)
 
     res = await admin_client.post(
-        f"/team/teams/{team.id}/memberships/request", json={"username": user.username}
+        f"/team/teams/{team.id}/memberships", json={"username": user.username}
     )
     assert res.status_code == 201, res.content
 
     membership_id = res.json()["id"]
     res = await admin_client.patch(
         f"/team/teams/{team.id}/memberships/{membership_id}",
-        json={"status": TeamMembershipStatusType.REJECT},
+        json={"status": TeamMembershipStatusType.REJECTED},
     )
     assert res.status_code == 200, res.content
 
-    res = await admin_client.get(f"/team/teams/{team.id}/memberships/non-approved")
+    res = await admin_client.get(f"/team/teams/{team.id}/memberships?non_approved=True")
     assert res.status_code == 200, res.content
 
     data = res.json()
@@ -162,7 +160,7 @@ async def test_list_non_approved_team_memberships(
     assert data[0]["id"] == membership_id
     assert data[0]["name"] == user.name
     assert data[0]["team_name"] == team.name
-    assert data[0]["status"] == TeamMembershipStatusType.REJECT
+    assert data[0]["status"] == TeamMembershipStatusType.REJECTED
 
 
 async def test_retrieve_team_membership(

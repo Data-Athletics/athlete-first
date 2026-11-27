@@ -1,20 +1,20 @@
-import type React from "react";
+import type React from 'react'
 import type {
   MembershipDataSharingPolicy,
   TeamDataSharingRequirements,
-  TeamMembershipRequest,
-} from "../types/Team";
-import DataSharingRequirementsList from "./DataSharingRequirementsList";
+  TeamMembershipRequest
+} from '../types/Team'
+import DataSharingRequirementsList from './DataSharingRequirementsList'
 
 interface RequestProps {
-  request: TeamMembershipRequest;
-  isStaff: boolean;
-  onAccept: () => void;
-  onReject: () => void;
-  onDelete: () => void;
-  loadingAction: "accept" | "reject" | "delete" | null;
-  requirements?: TeamDataSharingRequirements;
-  policy?: MembershipDataSharingPolicy | null;
+  request: TeamMembershipRequest
+  isStaff: boolean
+  onAccept: () => void
+  onReject: () => void
+  onDelete: () => void
+  loadingAction: 'accept' | 'rejected' | 'delete' | null
+  requirements?: TeamDataSharingRequirements
+  policy?: MembershipDataSharingPolicy | null
 }
 
 const Request: React.FC<RequestProps> = ({
@@ -25,7 +25,7 @@ const Request: React.FC<RequestProps> = ({
   onDelete,
   loadingAction,
   requirements,
-  policy,
+  policy
 }) => (
   <div className="request-row">
     <div className="request-details">
@@ -43,21 +43,30 @@ const Request: React.FC<RequestProps> = ({
     </div>
     <div className="request-actions">
       {isStaff ? (
-        <button disabled={loadingAction !== null} onClick={onDelete}>
-          {loadingAction === "delete" ? "Deleting..." : "Delete"}
+        <button
+          disabled={loadingAction !== null}
+          onClick={onDelete}
+        >
+          {loadingAction === 'delete' ? 'Deleting...' : 'Delete'}
         </button>
       ) : (
         <>
-          <button disabled={loadingAction !== null} onClick={onAccept}>
-            {loadingAction === "accept" ? "Accepting..." : "Accept"}
+          <button
+            disabled={loadingAction !== null}
+            onClick={onAccept}
+          >
+            {loadingAction === 'accept' ? 'Accepting...' : 'Accept'}
           </button>
-          <button disabled={loadingAction !== null} onClick={onReject}>
-            {loadingAction === "reject" ? "Rejecting..." : "Reject"}
+          <button
+            disabled={loadingAction !== null}
+            onClick={onReject}
+          >
+            {loadingAction === 'rejected' ? 'Rejecting...' : 'Reject'}
           </button>
         </>
       )}
     </div>
   </div>
-);
+)
 
-export default Request;
+export default Request

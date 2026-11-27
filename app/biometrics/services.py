@@ -128,7 +128,7 @@ async def _can_access_metric(
         query = select(TeamMembership).where(
             TeamMembership.user_id == requestor.id,
             TeamMembership.role == TeamRoleType.ATHLETE,
-            TeamMembership.status == TeamMembershipStatusType.APPROVE,
+            TeamMembership.status == TeamMembershipStatusType.APPROVED,
         )
         rows = await db.execute(query)
         memberships = list(rows.scalars())
@@ -167,13 +167,13 @@ async def _can_access_metric(
     query = select(TeamMembership).where(
         TeamMembership.user_id == target_user_id,
         TeamMembership.role == TeamRoleType.ATHLETE,
-        TeamMembership.status == TeamMembershipStatusType.APPROVE,
+        TeamMembership.status == TeamMembershipStatusType.APPROVED,
         exists(
             select(coach_membership.id).where(
                 coach_membership.team_id == TeamMembership.team_id,
                 coach_membership.user_id == requestor.id,
                 coach_membership.role == TeamRoleType.COACH,
-                coach_membership.status == TeamMembershipStatusType.APPROVE,
+                coach_membership.status == TeamMembershipStatusType.APPROVED,
             )
         ),
     )

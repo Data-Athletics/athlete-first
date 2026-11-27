@@ -9,14 +9,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import CurrentUserDep
 from app.core.database import DBErrors
 from app.core.dependencies import AsyncSessionDep
+from app.core.dtos import PermissionDeniedReason
+from app.core.exceptions import PermissionException
 from app.team.dtos.member_dsp_dto import MembershipDspDTO
 from app.team.dtos.team_dsr_dto import TeamDsrDTO
-from app.team.dtos.team_dto import CreateTeamDTO, MyTeamDTO, UpdateTeamDTO
+from app.team.dtos.team_dto import CreateTeamDTO, UpdateTeamDTO
 from app.team.dtos.team_membership_dto import (
     CreateTeamMembershipDTO,
-    CreateTeamMembershipRequestDTO,
     TeamMemberDTO,
-    TeamMembershipRequestDTO,
     UpdateTeamMembershipDTO,
 )
 from app.team.models import Team, TeamMembership, TeamMembershipStatusType, TeamRoleType
@@ -27,41 +27,54 @@ from app.user.models import User
 # -------------------------------
 
 
-async def list_teams(db: AsyncSession) -> list[Team]:
-    """Get a list of all teams"""
-
-    rows = await db.execute(select(Team).order_by(desc(Team.id)))
-    return list(rows.scalars())
-
-
-async def get_my_teams(db: AsyncSession, user: User) -> list[MyTeamDTO]:
+async def list_teams(db: AsyncSession, principal: User) -> list[Team]:
     """Get all teams and memberships for the current user."""
 
-    rows = await db.execute(
-        select(Team, TeamMembership)
-        .join(TeamMembership, TeamMembership.team_id == Team.id)
-        .where(TeamMembership.user_id == user.id)
+    # Initial query should list all teams and attach any memberships that match the principal
+    query = (
+        select(Team)
+        .join(
+            TeamMembership,
+            and_(
+                TeamMembership.team_id == Team.id,
+                TeamMembership.user_id == principal.id,
+            ),
+            isouter=True,
+        )
         .order_by(desc(Team.id))
     )
 
-    return [
-        MyTeamDTO.model_validate(
-            {
-                "id": team.id,
-                "created_at": team.created_at,
-                "updated_at": team.updated_at,
-                "name": team.name,
-                "membership": membership,
-            }
-        )
-        for team, membership in rows.all()
-    ]
+    # But if user is not staff, filter out all teams without a membership
+    if not principal.is_effective_staff:
+        query = query.where(TeamMembership.id.is_not(None))
+
+    rows = await db.execute(query)
+
+    return list(rows.scalars())
 
 
-async def get_team_by_id(db: AsyncSessionDep, team_id: Annotated[int, Path()]) -> Team:
+async def get_team_by_id(
+    db: AsyncSessionDep, team_id: Annotated[int, Path()], principal: CurrentUserDep
+) -> Team:
     """Retrieve team by their id or raise 404"""
 
-    rows = await db.execute(select(Team).where(Team.id == team_id))
+    query = (
+        select(Team)
+        .join(
+            TeamMembership,
+            and_(
+                TeamMembership.team_id == Team.id,
+                TeamMembership.user_id == principal.id,
+            ),
+            isouter=True,
+        )
+        .where(Team.id == team_id)
+    )
+
+    if not principal.is_effective_staff:
+        query = query.where(TeamMembership.user_id == principal.id)
+
+    rows = await db.execute(query)
     team = rows.scalar_one_or_none()
 
     if team is None:
@@ -72,24 +85,28 @@ async def get_team_by_id(db: AsyncSessionDep, team_id: Annotated[int, Path()]) -
     return team
 
 
-async def require_team_coach(db: AsyncSession, team: Team, user: User) -> None:
+async def require_team_coach(
+    db: AsyncSession, user: User, team: Team | None = None
+) -> None:
     """Require an approved coach membership before changing team requirements."""
 
-    if user.is_admin or user.is_staff:
+    if user.is_effective_staff:
         return
 
-    rows = await db.execute(
-        select(TeamMembership).where(
-            TeamMembership.team_id == team.id,
-            TeamMembership.user_id == user.id,
-            TeamMembership.role == TeamRoleType.COACH,
-            TeamMembership.status == TeamMembershipStatusType.APPROVE,
-        )
+    query = select(TeamMembership).where(
+        TeamMembership.user_id == user.id,
+        TeamMembership.role == TeamRoleType.COACH,
+        TeamMembership.status == TeamMembershipStatusType.APPROVED,
     )
+
+    if team is not None:
+        query = query.where(TeamMembership.team_id == team.id)
+
+    rows = await db.execute(query)
     if rows.scalar_one_or_none() is None:
-        raise HTTPException(
-            status.HTTP_403_FORBIDDEN,
-            detail="Only an approved team coach can update data sharing requirements.",
+        raise PermissionException(
+            detail="Must be an approved team coach or staff to perform action",
+            reason=PermissionDeniedReason.COACHES_ONLY,
         )
 
 
@@ -114,7 +131,7 @@ async def create_team(db: AsyncSession, body: CreateTeamDTO):
     # Add users to the team
     for id in user_ids:
         mem = TeamMembership(
-            user_id=id, team_id=team.id, status=TeamMembershipStatusType.APPROVE
+            user_id=id, team_id=team.id, status=TeamMembershipStatusType.APPROVED
         )
         db.add(mem)
 
@@ -160,81 +177,52 @@ async def delete_team(db: AsyncSession, team: Team):
 # -------------------------------
 
 
-async def list_team_memberships(db: AsyncSession, team: Team) -> list[TeamMemberDTO]:
+async def list_team_memberships(
+    db: AsyncSession, team: Team, non_approved: bool | None = None
+) -> list[TeamMemberDTO]:
     """List team memberships for a team"""
 
-    rows = await db.execute(
-        select(TeamMembership, User.name)
-        .join(User, User.id == TeamMembership.user_id)
+    query = (
+        select(TeamMembership)
         .where(TeamMembership.team_id == team.id)
         .order_by(desc(TeamMembership.id))
     )
-    return [
-        TeamMemberDTO.model_validate(
-            {
-                "id": membership.id,
-                "created_at": membership.created_at,
-                "updated_at": membership.updated_at,
-                "role": membership.role,
-                "user_id": membership.user_id,
-                "team_id": membership.team_id,
-                "status": membership.status,
-                "name": name,
-            }
-        )
-        for membership, name in rows.all()
-    ]
 
+    if non_approved is True:
+        query = query.where(TeamMembership.status != TeamMembershipStatusType.APPROVED)
 
-async def list_non_approved_team_memberships(
-    db: AsyncSession, team: Team
-) -> list[TeamMembershipRequestDTO]:
-    """List all non-approved memberships for a team."""
-
-    rows = await db.execute(
-        select(TeamMembership, User.name)
-        .join(User, User.id == TeamMembership.user_id)
-        .where(
-            TeamMembership.team_id == team.id,
-            TeamMembership.status != TeamMembershipStatusType.APPROVE,
-        )
-        .order_by(desc(TeamMembership.id))
-    )
-
-    return [
-        TeamMembershipRequestDTO.model_validate(
-            {
-                "id": membership.id,
-                "created_at": membership.created_at,
-                "updated_at": membership.updated_at,
-                "role": membership.role,
-                "user_id": membership.user_id,
-                "team_id": membership.team_id,
-                "status": membership.status,
-                "name": name,
-                "team_name": team.name,
-            }
-        )
-        for membership, name in rows.all()
-    ]
+    rows = await db.execute(query)
+    return [TeamMemberDTO.from_team_membership(mem) for mem in rows.scalars()]
 
 
 async def get_team_membership_by_id(
     db: AsyncSessionDep,
     team: Annotated[Team, Depends(get_team_by_id)],
     team_membership_id: Annotated[int, Path()],
+    principal: CurrentUserDep,
 ) -> TeamMembership:
     """Retrieve a team membership from a team or raise 404"""
 
-    rows = await db.execute(
-        select(TeamMembership).where(
-            and_(
-                TeamMembership.id == team_membership_id,
-                TeamMembership.team_id == team.id,
-            )
+    if not principal.is_effective_staff:
+        current_membership = next(
+            mem for mem in team.memberships if mem.user_id == principal.id
         )
+
+        if (
+            team_membership_id != current_membership.id
+            and current_membership.role != TeamRoleType.COACH
+        ):
+            # Non-staff athlete is trying to access another membership
+            raise PermissionException(
+                detail="Only coaches can see other members of a team",
+                reason=PermissionDeniedReason.COACHES_ONLY,
+            )
+
+    # Memberships already retrieved by database
+    await db.refresh(team)
+    membership = next(
+        (mem for mem in team.memberships if mem.id == team_membership_id), None
     )
-    membership = rows.scalar_one_or_none()
 
     if membership is None:
         raise HTTPException(
@@ -269,16 +257,31 @@ async def get_user_team_membership(
 
 
 async def create_team_membership(
-    db: AsyncSession,
-    team: Team,
-    body: CreateTeamMembershipDTO,
-    membership_status: TeamMembershipStatusType = TeamMembershipStatusType.APPROVE,
+    db: AsyncSession, team: Team, body: CreateTeamMembershipDTO
 ):
     """Create a team membership"""
 
-    membership = TeamMembership(
-        **body.model_dump(), team_id=team.id, status=membership_status
-    )
+    payload = body.model_dump()
+    username = payload.pop("username", None)
+
+    if username is not None:
+        rows = await db.execute(select(User).where(User.username == username))
+        user = rows.scalar_one_or_none()
+
+        if user is None:
+            raise RequestValidationError(
+                errors=[
+                    {
+                        "loc": ["body", "username"],
+                        "msg": f"No user exists with username {body.username}",
+                        "type": "value_error",
+                    }
+                ]
+            )
+
+        payload["user_id"] = user.id
+
+    membership = TeamMembership(**payload, team_id=team.id)
     db.add(membership)
 
     try:
@@ -308,28 +311,6 @@ async def create_team_membership(
         raise e
 
     return membership
-
-
-async def create_team_membership_request(
-    db: AsyncSession, team: Team, body: CreateTeamMembershipRequestDTO
-):
-    """Create a pending team membership request"""
-
-    rows = await db.execute(select(User).where(User.username == body.username))
-    user = rows.scalar_one_or_none()
-
-    if user is None:
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND,
-            detail=f"User not found for username {body.username}",
-        )
-
-    return await create_team_membership(
-        db,
-        team,
-        body=CreateTeamMembershipDTO(user_id=user.id),
-        membership_status=TeamMembershipStatusType.PENDING,
-    )
 
 
 async def update_team_membership(

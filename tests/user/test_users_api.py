@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.services import authenticate_user
 from app.core.faker import fake
 from app.user.models import User
+from tests.team.utils import create_test_team
 from tests.user.utils import create_test_user, create_test_users
 
 
@@ -189,8 +190,9 @@ async def test_delete_user(
 ):
     """Should delete a user by their id"""
 
-    # Create 2 additional users
+    # Create 2 additional users that are part of a team
     users = await create_test_users(db, count=2)
+    await create_test_team(db, users=users)
 
     # Unauthenticated user
     res = await client.delete(f"/user/users/{users[0].id}")

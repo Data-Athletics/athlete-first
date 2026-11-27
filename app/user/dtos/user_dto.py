@@ -21,6 +21,7 @@ class UserDTO(BaseModelDTO, BaseUserDTO):
     id: int = Field(description="Primary key")
     can_login: bool = Field(description="Whether they have a usable password or not")
     is_staff: bool = Field(description="Whether a user is a staff member or not")
+    is_admin: bool = Field(description="Whether a user is a system admin or not")
     is_active: bool = Field(
         description=(
             "Determines whether the user can login, and whether their metrics "
@@ -36,7 +37,15 @@ class SetPasswordMixin:
     password: SecretStr | None = Field(default=None, min_length=6)
 
 
-class CreateUserDTO(SetPasswordMixin, BaseUserDTO):
+class SetUserAccessMixin:
+    """Adds fields needed to determine user's access to the api"""
+
+    is_active: bool | None = Field(default=None)
+    is_staff: bool | None = Field(default=None)
+    is_admin: bool | None = Field(default=None)
+
+
+class CreateUserDTO(SetPasswordMixin, SetUserAccessMixin, BaseUserDTO):
     """Fields needed to create a new user"""
 
     pass
@@ -53,10 +62,10 @@ class UpdateUserBaseDTO(BaseUserDTO):
     age: int | None = Field(default=None, gt=0)
 
 
-class UpdateUserDTO(UpdateUserBaseDTO):
+class UpdateUserDTO(SetPasswordMixin, SetUserAccessMixin, UpdateUserBaseDTO):
     """Fields available to update for a user"""
 
-    is_active: bool | None = Field(default=None)
+    pass
 
 
 class UpdateMeDTO(SetPasswordMixin, UpdateUserBaseDTO):
