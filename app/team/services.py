@@ -96,7 +96,7 @@ async def require_team_coach(
     query = select(TeamMembership).where(
         TeamMembership.user_id == user.id,
         TeamMembership.role == TeamRoleType.COACH,
-        TeamMembership.status == TeamMembershipStatusType.APPROVE,
+        TeamMembership.status == TeamMembershipStatusType.APPROVED,
     )
 
     if team is not None:
@@ -131,7 +131,7 @@ async def create_team(db: AsyncSession, body: CreateTeamDTO):
     # Add users to the team
     for id in user_ids:
         mem = TeamMembership(
-            user_id=id, team_id=team.id, status=TeamMembershipStatusType.APPROVE
+            user_id=id, team_id=team.id, status=TeamMembershipStatusType.APPROVED
         )
         db.add(mem)
 
@@ -189,7 +189,7 @@ async def list_team_memberships(
     )
 
     if non_approved is True:
-        query = query.where(TeamMembership.status != TeamMembershipStatusType.APPROVE)
+        query = query.where(TeamMembership.status != TeamMembershipStatusType.APPROVED)
 
     rows = await db.execute(query)
     return [TeamMemberDTO.from_team_membership(mem) for mem in rows.scalars()]
@@ -273,7 +273,7 @@ async def create_team_membership(
                 errors=[
                     {
                         "loc": ["body", "username"],
-                        "msg": f"No user exists with username {body.user_id}",
+                        "msg": f"No user exists with username {body.username}",
                         "type": "value_error",
                     }
                 ]
@@ -311,28 +311,6 @@ async def create_team_membership(
         raise e
 
     return membership
-
-
-# async def create_team_membership_request(
-#     db: AsyncSession, team: Team, body: CreateTeamMembershipRequestDTO
-# ):
-#     """Create a pending team membership request"""
-
-#     rows = await db.execute(select(User).where(User.username == body.username))
-#     user = rows.scalar_one_or_none()
-
-#     if user is None:
-#         raise HTTPException(
-#             status.HTTP_404_NOT_FOUND,
-#             detail=f"User not found for username {body.username}",
-#         )
-
-#     return await create_team_membership(
-#         db,
-#         team,
-#         body=CreateTeamMembershipDTO(user_id=user.id),
-#         membership_status=TeamMembershipStatusType.PENDING,
-#     )
 
 
 async def update_team_membership(

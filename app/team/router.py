@@ -159,7 +159,7 @@ async def retrieve_team_membership_route(membership: TeamMembershipByIdDep):
 @memberships_router.patch(
     "/{team_membership_id}",
     response_model=TeamMembershipDTO,
-    dependencies=[Depends(current_user_is_staff_dep)],
+    dependencies=[Depends(current_user_is_team_coach_dep)],
 )
 async def update_team_membership_route(
     db: AsyncSessionDep,
@@ -178,12 +178,6 @@ async def delete_team_membership_route(
     access_level: CurrentUserTeamAccessDep,
 ):
     """Remove a user from a team"""
-
-    if membership.role == TeamRoleType.COACH and access_level == TeamAccessLevel.COACH:
-        raise PermissionException(
-            detail="Only staff level users can delete coaches",
-            reason=PermissionDeniedReason.STAFF_ONLY,
-        )
 
     return await delete_team_membership(db, membership)
 

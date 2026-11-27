@@ -71,7 +71,7 @@ async def update_user_route(
 ):
     """Partially update a user"""
 
-    # Check for privelege-escalation
+    # Check for privelege-de/escalation
     if body.is_admin is not None:
         require_admin_user(
             current_user, message="User needs to be an admin to promote users to admin"
@@ -82,17 +82,17 @@ async def update_user_route(
             current_user, message="Only admins can set other admins as active/inactive"
         )
 
+    if (body.username is not None or body.password is not None) and user.is_admin:
+        require_admin_user(
+            current_user,
+            message="Only admins can change login details for another admin",
+        )
+
     # Then continue with update
     data = body.model_dump(exclude_unset=True)
     changed_pass = data.pop("password", None)
 
     if changed_pass is not None:
-        if user.is_admin:
-            require_admin_user(
-                current_user,
-                message="Only admins can change the password of other admins",
-            )
-
         user.hashed_password = get_password_hash(changed_pass)
 
     for key, value in data.items():

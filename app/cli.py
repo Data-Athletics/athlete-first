@@ -468,7 +468,7 @@ async def approve_membership(
                 f"No membership exists for user {user_id} in team {team_id}"
             )
 
-        membership.status = TeamMembershipStatusType.APPROVE
+        membership.status = TeamMembershipStatusType.APPROVED
 
         db.add(membership)
         await db.commit()

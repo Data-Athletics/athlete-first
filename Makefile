@@ -20,10 +20,10 @@ seed:
 		uv run python app/cli.py create-user --username coach@email.com --name 'Coach' --password changeme --staff && \
 		uv run python app/cli.py create-team --name 'Team Alpha' && \
 		uv run python app/cli.py create-team --name 'Team Beta' && \
-		uv run python app/cli.py create-membership --user-id 1 --team-id 1 --role athlete --status approve && \
-		uv run python app/cli.py create-membership --user-id 2 --team-id 2 --role athlete --status approve && \
-		uv run python app/cli.py create-membership --user-id 4 --team-id 1 --role coach --status approve && \
-		uv run python app/cli.py create-membership --user-id 4 --team-id 2 --role coach --status approve && \
+		uv run python app/cli.py create-membership --user-id 1 --team-id 1 --role athlete --status approved && \
+		uv run python app/cli.py create-membership --user-id 2 --team-id 2 --role athlete --status approved && \
+		uv run python app/cli.py create-membership --user-id 4 --team-id 1 --role coach --status approved && \
+		uv run python app/cli.py create-membership --user-id 4 --team-id 2 --role coach --status approved && \
 		uv run python app/cli.py create-membership --user-id 3 --team-id 1 --status pending && \
 		uv run python app/cli.py seed-data-sharing \
 	"

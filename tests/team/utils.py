@@ -76,7 +76,7 @@ async def create_test_team(
             TeamMembership(
                 user_id=user_id,
                 team_id=team.id,
-                status=TeamMembershipStatusType.APPROVE,
+                status=TeamMembershipStatusType.APPROVED,
             )
             for user_id in user_ids
         ]
@@ -86,7 +86,7 @@ async def create_test_team(
                 user_id=user_id,
                 team_id=team.id,
                 role=TeamRoleType.COACH,
-                status=TeamMembershipStatusType.APPROVE,
+                status=TeamMembershipStatusType.APPROVED,
             )
             for user_id in (coach_user_ids or [])
         ]
@@ -128,7 +128,7 @@ async def create_test_team_membership(
     user_id: int,
     team_id: int,
     is_coach: bool = False,
-    status=TeamMembershipStatusType.APPROVE,
+    status=TeamMembershipStatusType.APPROVED,
     **kwargs,
 ):
     """Create a membership between a user and a team"""

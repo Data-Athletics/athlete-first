@@ -34,9 +34,9 @@ async def test_create_users_perms(
 
     # Coaches that are not staff should not be able to create users
     await user_perms_data.set_coach(db, current_user)
-    assert res.json()["reason"] == "staff_only"
     res = await user_client.post("/user/users", json=payload)
     assert res.status_code == 403
+    assert res.json()["reason"] == "staff_only"
     assert await model_count(db, User) == user_start_count
 
     # Staff can create users
@@ -59,7 +59,7 @@ async def test_create_users_perms(
     payload["username"] = fake.username()
     res = await user_client.post("/user/users", json=payload)
     assert res.status_code == 403
-    assert res.json()["reason"] == "admin_only"
+    assert res.json()["reason"] == "admins_only"
     assert await model_count(db, User) == user_start_count + 2
 
     # Inactive staff cannot create users
@@ -167,7 +167,7 @@ async def test_retrieve_users_perms(
     current_user: User,
     user_perms_data: UserPermsData,
 ):
-    """Retrieving users should be restricted based on role"""
+    """Retrieving users should be restricted to coaches and staff"""
 
     u1 = user_perms_data.u1
     ta1 = user_perms_data.ta1
@@ -326,7 +326,7 @@ async def test_user_privilege_escalation(
     current_user: User,
     user_perms_data: UserPermsData,
 ):
-    """A user should not be able to elevate their own or another user's permissions"""
+    """A user should not be able to elevate their or another user's privileges past their own"""
 
     u1 = user_perms_data.u1
 
@@ -382,9 +382,9 @@ async def test_staff_privilege_escalation(
     s1 = user_perms_data.s1
     a1 = user_perms_data.a1
 
-    # Staff can set other users as staff
     await user_perms_data.set_staff(db, current_user)
 
+    # Staff can set other users as staff
     payload = {"is_staff": True}
     res = await user_client.patch(f"/user/users/{u1.id}", json=payload)
     assert res.status_code == 200, res.content
@@ -398,7 +398,7 @@ async def test_staff_privilege_escalation(
     payload = {"is_admin": True}
     res = await user_client.patch(f"/user/users/{current_user.id}", json=payload)
     assert res.status_code == 403
-    assert res.json()["reason"] == "admin_only"
+    assert res.json()["reason"] == "admins_only"
 
     await db.refresh(current_user)
     assert current_user.is_admin is False
@@ -406,7 +406,7 @@ async def test_staff_privilege_escalation(
     # Staff cannot set other user as admin
     res = await user_client.patch(f"/user/users/{u1.id}", json=payload)
     assert res.status_code == 403
-    assert res.json()["reason"] == "admin_only"
+    assert res.json()["reason"] == "admins_only"
 
     await db.refresh(u1)
     assert u1.is_admin is False
@@ -435,7 +435,7 @@ async def test_staff_privilege_escalation(
     payload = {"is_admin": False}
     res = await user_client.patch(f"/user/users/{a1.id}", json=payload)
     assert res.status_code == 403
-    assert res.json()["reason"] == "admin_only"
+    assert res.json()["reason"] == "admins_only"
 
     await db.refresh(a1)
     assert a1.is_admin is True
@@ -444,7 +444,7 @@ async def test_staff_privilege_escalation(
     payload = {"is_active": False}
     res = await user_client.patch(f"/user/users/{a1.id}", json=payload)
     assert res.status_code == 403
-    assert res.json()["reason"] == "admin_only"
+    assert res.json()["reason"] == "admins_only"
 
     await db.refresh(a1)
     assert a1.is_active is True
@@ -463,10 +463,20 @@ async def test_staff_privilege_escalation(
     payload = {"password": "changeme"}
     res = await user_client.patch(f"/user/users/{a1.id}", json=payload)
     assert res.status_code == 403
-    assert res.json()["reason"] == "admin_only"
+    assert res.json()["reason"] == "admins_only"
 
     await db.refresh(a1)
     assert a1.hashed_password == hashed_pass_before
+
+    # Staff also cannot change an admin's username
+    username_before = a1.username
+    payload = {"username": a1.username + "-updated"}
+    res = await user_client.patch(f"/user/users/{a1.id}", json=payload)
+    assert res.status_code == 403
+    assert res.json()["reason"] == "admins_only"
+
+    await db.refresh(a1)
+    assert a1.username == username_before
 
 
 async def test_admin_privilege_escalation(
@@ -524,7 +534,7 @@ async def test_delete_users_perms(
     a1 = user_perms_data.a1
     ta1 = user_perms_data.ta1
 
-    # Getting should return 403 for regular user (method checked before querying user)
+    # Deleting should return 403 for regular user (method checked before querying user)
     res = await user_client.delete(f"/user/users/{u1.id}")
     assert res.status_code == 403
     assert res.json()["reason"] == "staff_only"
@@ -558,7 +568,7 @@ async def test_delete_users_perms(
     # Staff cannot delete admins
     res = await user_client.delete(f"/user/users/{a1.id}")
     assert res.status_code == 403
-    assert res.json()["reason"] == "admin_only"
+    assert res.json()["reason"] == "admins_only"
 
     assert await model_count(db, User, where=(User.id == a1.id)) == 1
 

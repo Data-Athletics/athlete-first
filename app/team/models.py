@@ -18,8 +18,8 @@ class TeamRoleType(StrEnum):
 class TeamMembershipStatusType(StrEnum):
     """The different consent statuses a user can have for a team membership"""
 
-    APPROVE = "approve"
-    REJECT = "reject"
+    APPROVED = "approved"
+    REJECTED = "rejected"
     PENDING = "pending"
 
 

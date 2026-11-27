@@ -41,7 +41,7 @@ async def get_user_by_id(
                             TeamMembership.team_id == Team.id,
                             TeamMembership.user_id == current_user.id,
                             TeamMembership.role == TeamRoleType.COACH,
-                            TeamMembership.status == TeamMembershipStatusType.APPROVE,
+                            TeamMembership.status == TeamMembershipStatusType.APPROVED,
                         )
                     )
                 ),
@@ -51,7 +51,7 @@ async def get_user_by_id(
                         and_(
                             TeamMembership.team_id == Team.id,
                             TeamMembership.user_id == user_id,
-                            TeamMembership.status == TeamMembershipStatusType.APPROVE,
+                            TeamMembership.status == TeamMembershipStatusType.APPROVED,
                         )
                     )
                 ),
@@ -134,7 +134,7 @@ def require_admin_user(user: User, message="User needs to be an admin to access 
 
     if not user.is_admin:
         raise PermissionException(
-            detail=message, reason=PermissionDeniedReason.ADMIN_ONLY
+            detail=message, reason=PermissionDeniedReason.ADMINS_ONLY
         )
 
     return True

@@ -1,7 +1,7 @@
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.team.models import TeamMembership, TeamRoleType
+from app.team.models import TeamMembership, TeamMembershipStatusType, TeamRoleType
 from app.user.models import User
 from tests.team.utils import TeamMembershipsData, create_test_team
 from tests.user.utils import create_test_users
@@ -11,7 +11,7 @@ from tests.utils import model_count
 async def test_create_team_members_perms(
     db: AsyncSession, user_client: AsyncClient, current_user: User
 ):
-    """Only staff and admins should be able to create team members"""
+    """Coaches should be able to create team members"""
 
     t1 = await create_test_team(db, coach_user_ids=[current_user.id])
     t2 = await create_test_team(db, user_ids=[current_user.id])
@@ -30,6 +30,7 @@ async def test_create_team_members_perms(
     # Rejected if athlete
     res = await user_client.post(f"/team/teams/{t2.id}/memberships", json=payload)
     assert res.status_code == 403
+    assert res.json()["reason"] == "coaches_only"
     assert await model_count(db, TeamMembership) == 2
 
     # Coaches that are not staff should be able to create memberships
@@ -43,6 +44,7 @@ async def test_create_team_members_perms(
     payload_c = {"user_id": u2.id, "role": TeamRoleType.COACH}
     res = await user_client.post(f"/team/teams/{t1.id}/memberships", json=payload_c)
     assert res.status_code == 403
+    assert res.json()["reason"] == "staff_only"
     assert await model_count(db, TeamMembership) == 3
     await db.refresh(t1)
     assert len(t1.memberships) == 2
@@ -102,7 +104,7 @@ async def test_list_team_members_perms(
     current_user: User,
     team_memberships_data: TeamMembershipsData,
 ):
-    """Only staff and admins should be able to list team members"""
+    """Coaches should be able to list team members"""
 
     t1, t2, t3 = team_memberships_data.get_teams()
 
@@ -113,6 +115,7 @@ async def test_list_team_members_perms(
     # Listing memberships should return 403 for athlete
     res = await user_client.get(f"/team/teams/{t2.id}/memberships")
     assert res.status_code == 403
+    assert res.json()["reason"] == "coaches_only"
 
     # Coaches that are not staff should be able to see memberships in their team
     res = await user_client.get(f"/team/teams/{t1.id}/memberships")
@@ -168,7 +171,7 @@ async def test_retrieve_team_members_perms(
     current_user: User,
     team_memberships_data: TeamMembershipsData,
 ):
-    """Only staff and admins should be able to get individual team memberships"""
+    """Coaches should be able to get individual team memberships"""
 
     t1, t2, t3 = team_memberships_data.get_teams()
     tmd = team_memberships_data
@@ -180,10 +183,12 @@ async def test_retrieve_team_members_perms(
     # But athletes cannot get other memberships
     res = await user_client.get(f"/team/teams/{t2.id}/memberships/{tmd.t2_a2.id}")
     assert res.status_code == 403
+    assert res.json()["reason"] == "coaches_only"
 
-    # Athletes are forbidden even if membership doesn't exist
+    # Athletes are forbidden even if membership doesn't exist (method checked before id)
     res = await user_client.get(f"/team/teams/{t2.id}/memberships/100")
     assert res.status_code == 403
+    assert res.json()["reason"] == "coaches_only"
 
     # Athletes also can't see memberships on other teams
     res = await user_client.get(f"/team/teams/{t3.id}/memberships/{tmd.t3_a1.id}")
@@ -234,30 +239,49 @@ async def test_update_team_members_perms(
     current_user: User,
     team_memberships_data: TeamMembershipsData,
 ):
-    """Only staff and admins should be able to update teams"""
+    """Coaches should be able to update team memberships"""
 
-    t1, _t2, t3 = team_memberships_data.get_teams()
+    t1, t2, t3 = team_memberships_data.get_teams()
     tmd = team_memberships_data
 
-    payload = {"role": TeamRoleType.COACH}
+    payload = {"status": TeamMembershipStatusType.REJECTED}
+    assert tmd.t3_a1.status == TeamMembershipStatusType.APPROVED
 
-    # Update should return 404 for regular user (team not found)
+    # Update should return 404 for non-member user (team not found)
     res = await user_client.patch(
         f"/team/teams/{t3.id}/memberships/{tmd.t3_a1.id}", json=payload
     )
     assert res.status_code == 404
 
     await db.refresh(tmd.t3_a1)
-    assert tmd.t3_a1.role != TeamRoleType.COACH
+    assert tmd.t3_a1.status != TeamMembershipStatusType.REJECTED
 
-    # Coaches that are not staff should be rejected with 403
+    # Athletes cannot update their own membership
+    res = await user_client.patch(f"/team/teams/{t2.id}/memberships/{tmd.t2_a1.id}")
+    assert res.status_code == 403
+    assert res.json()["reason"] == "coaches_only"
+
+    await db.refresh(tmd.t2_a1)
+    assert tmd.t2_a1.status != TeamMembershipStatusType.REJECTED
+
+    # Coaches that are not staff should be able to make the update
     res = await user_client.patch(
         f"/team/teams/{t1.id}/memberships/{tmd.t1_a1.id}", json=payload
     )
-    assert res.status_code == 403
+    assert res.status_code == 200
 
     await db.refresh(tmd.t1_a1)
-    assert tmd.t1_a1.role != TeamRoleType.COACH
+    assert tmd.t1_a1.status == TeamMembershipStatusType.REJECTED
+
+    # Coaches that are not staff should also be able to upgrade a member to coach
+    payload = {"role": TeamRoleType.COACH}
+    res = await user_client.patch(
+        f"/team/teams/{t1.id}/memberships/{tmd.t1_a1.id}", json=payload
+    )
+    assert res.status_code == 200
+
+    await db.refresh(tmd.t1_a1)
+    assert tmd.t1_a1.role == TeamRoleType.COACH
 
     # Staff should be able to update team memberships
     current_user.is_staff = True
@@ -336,13 +360,23 @@ async def test_delete_team_members_perms(
         == 1
     )
 
-    # Athlets shoudln't be able to delete a membership
+    # Athlets shouldn't be able to delete a membership
     res = await user_client.delete(f"/team/teams/{t2.id}/memberships/{tmd.t2_a2.id}")
     assert res.status_code == 403
+    assert res.json()["reason"] == "coaches_only"
 
     assert (
         await model_count(db, TeamMembership, where=(TeamMembership.id == tmd.t2_a2.id))
         == 1
+    )
+
+    # Athletes can, however, delete their own membership (i.e. leave a team)
+    res = await user_client.delete(f"/team/teams/{t2.id}/memberships/{tmd.t2_a1.id}")
+    assert res.status_code == 200
+
+    assert (
+        await model_count(db, TeamMembership, where=(TeamMembership.id == tmd.t2_a1.id))
+        == 0
     )
 
     # Coaches should be able to delete an athlete
@@ -354,13 +388,13 @@ async def test_delete_team_members_perms(
         == 0
     )
 
-    # Non-staff coaches should not be able to delete another coach
+    # Non-staff coaches should be able to delete another coach
     res = await user_client.delete(f"/team/teams/{t1.id}/memberships/{tmd.t1_c2.id}")
-    assert res.status_code == 403
+    assert res.status_code == 200
 
     assert (
         await model_count(db, TeamMembership, where=(TeamMembership.id == tmd.t1_c2.id))
-        == 1
+        == 0
     )
 
     # Staff should be able to delete any team memberships

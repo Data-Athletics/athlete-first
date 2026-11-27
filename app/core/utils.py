@@ -5,7 +5,7 @@ from sqlalchemy.engine.cursor import TupleAny
 from app.core.config import app_settings
 
 
-def print_query(query: Select[TupleAny], label: str | None = None):
+def print_query(query: Select[TupleAny], label: str | None = None):  # pragma: no cover
     """Print SQL statement for an SQLAlechemy query"""
 
     if not app_settings.debug:

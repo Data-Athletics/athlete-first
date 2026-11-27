@@ -20,6 +20,7 @@ async def test_create_teams_perms(
     # Rejected if regular user
     res = await user_client.post("/team/teams", json=payload)
     assert res.status_code == 403
+    assert res.json()["reason"] == "staff_only"
     assert await model_count(db, Team) == 0
 
     # Coaches that are not staff should not be able to create teams
@@ -28,6 +29,7 @@ async def test_create_teams_perms(
 
     res = await user_client.post("/team/teams", json=payload)
     assert res.status_code == 403
+    assert res.json()["reason"] == "staff_only"
     assert await model_count(db, Team) == 1
 
     # Staff can create teams
@@ -74,7 +76,7 @@ async def test_create_teams_perms(
 async def test_list_teams_perms(
     db: AsyncSession, user_client: AsyncClient, current_user: User
 ):
-    """Only staff and admins should be able to create teams"""
+    """Only staff and admins should be able to list teams"""
 
     t1 = await create_test_team(db, coach_user_ids=[current_user.id])
     t2 = await create_test_team(db, user_ids=[current_user.id])
@@ -153,7 +155,7 @@ async def test_list_teams_perms(
 async def test_retrieve_teams_perms(
     db: AsyncSession, user_client: AsyncClient, current_user: User
 ):
-    """Only staff and admins should be able to create teams"""
+    """Members of a team should be able to get team details"""
 
     t1 = await create_test_team(db, coach_user_ids=[current_user.id])
     t2 = await create_test_team(db, user_ids=[current_user.id])
@@ -171,7 +173,7 @@ async def test_retrieve_teams_perms(
     res = await user_client.get(f"/team/teams/{t3.id}")
     assert res.status_code == 404
 
-    # Staff should be able to info on any team
+    # Staff should be able to get info on any team
     current_user.is_staff = True
     db.add(current_user)
     await db.commit()
@@ -219,6 +221,7 @@ async def test_update_teams_perms(
     # Update should return 403 for regular user (method checked before team id)
     res = await user_client.patch(f"/team/teams/{target_team.id}", json=payload)
     assert res.status_code == 403
+    assert res.json()["reason"] == "staff_only"
 
     await db.refresh(target_team)
     assert target_team.name != payload["name"]
@@ -229,6 +232,7 @@ async def test_update_teams_perms(
 
     res = await user_client.patch(f"/team/teams/{target_team.id}", json=payload)
     assert res.status_code == 403
+    assert res.json()["reason"] == "staff_only"
 
     await db.refresh(target_team)
     assert target_team.name != payload["name"]
@@ -294,12 +298,14 @@ async def test_delete_teams_perms(
     # Regular members should not be able to delete a team
     res = await user_client.delete(f"/team/teams/{t2.id}")
     assert res.status_code == 403
+    assert res.json()["reason"] == "staff_only"
 
     assert await model_count(db, Team, where=(Team.id == t2.id)) == 1
 
     # Coaches should not be able to delete a team
     res = await user_client.delete(f"/team/teams/{t1.id}")
     assert res.status_code == 403
+    assert res.json()["reason"] == "staff_only"
 
     assert await model_count(db, Team, where=(Team.id == t1.id)) == 1
 
